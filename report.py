@@ -292,8 +292,8 @@ def report_guide(label_name):
             (label, f"the industry the input file gives ({label_name or 'none'}); never used to decide"),
             ("Result", "our segment, or Other (the equipment we could finance); 'not classified' when the account "
                        "stopped before a decision (see Stopped at and Problem)"),
-            ("Confidence", "the model's probability for our industry (when a safety net overrode Other, the "
-                           "segment's own probability). Coloured green, yellow or red by how sure (see Thresholds)"),
+            ("Confidence", "how sure the model is of the result: its probability, rescaled so a blind guess (1 in 6) "
+                           "counts as 0%. Coloured green, yellow or red by how sure (see Thresholds)"),
             ("Main business", "Yes: the segment's work is the main business. No: done alongside another main "
                               "business. Blank for Other"),
             ("Match", f"our industry is the same as the {label_name or 'label'} industry"),

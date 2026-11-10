@@ -3,6 +3,11 @@
 The code says what happens; this file says why. Newest first.
 
 ## 2026-11-10
+- **One confidence scale.** The model's confidence is its probability rescaled so a blind guess counts as 0:
+  (p - 1/6) / (1 - 1/6), checked against 1,000+ saved answers (within 0.001). When a threshold overrides Other, the
+  model gives no confidence for the segment we keep, so the code used to show that segment's plain probability: a
+  different measure in the same column. Now the same formula is applied (`decide.to_confidence`, 0 under 1/6). Only
+  those override rows change (28 of 504 on the last run), all lower; no segment, rule or colour band changed.
 - **Every account in the final table.** The Accounts sheet (and CSV) has one row per account in the input file: the
   result, or the stage it stopped at and why (accounts the crawl hasn't reached are listed too). The separate Stage
   log sheet is gone.

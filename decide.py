@@ -26,8 +26,10 @@ HOW AN ACCOUNT IS DECIDED, in order
        High    85% or more (HIGH_FROM)         green
        Medium  70% to 85% (MEDIUM_FROM)        yellow
        Low     under 70%: a close call         red
-       Confidence is the model's probability for its pick; when a safety net overrode Other, it is the chosen
-       segment's own probability (usually low, so it shows red)
+       Confidence = the probability of the answer, rescaled so a blind guess counts as 0 (to_confidence): with six
+       options a blind guess is 1/6, so confidence = (p - 1/6) / (1 - 1/6). The model gives this for its own pick;
+       when a safety net overrode Other, the same formula is applied to the chosen segment's probability (usually
+       low, so it shows red)
   5. Unsure? (review_reasons): any of these makes an answer unsure
        a close call (confidence under 70%)
        a segment other than ours has a main-business score of 0.40 or more
@@ -86,6 +88,13 @@ def wrong_site(site_match, crm_evidence, cleared_by_hand=False):
 
 
 # --- 2. Segment ------------------------------------------------------------------------------------------------
+def to_confidence(probability):
+    """The model's own confidence formula, for a segment it didn't pick: the probability rescaled so a blind guess
+    (1 in 6 options) counts as 0 and certainty as 1. Example: 0.75 -> (0.75 - 1/6) / (5/6) = 0.70. Under 1/6 it is 0."""
+    guess = 1 / len(OPTIONS)
+    return max(0.0, (probability - guess) / (1 - guess))
+
+
 def choose(model_pick, model_confidence, probabilities, main_scores, other_from=OTHER_FROM,
            main_blocks_other=MAIN_BLOCKS_OTHER):
     """The segment rule, in one place: (segment, confidence, which rule decided it).
@@ -93,16 +102,17 @@ def choose(model_pick, model_confidence, probabilities, main_scores, other_from=
     The model's own pick stands, except that Other must pass two checks first:
       1. main-business safety net: if some segment's main-business score is main_blocks_other or more, that segment
       2. Other bar: if the model's probability for Other is under other_from, the likeliest segment
-    Only when both pass is the answer Other. When a check overrides Other, the confidence shown is the chosen
-    segment's own probability (low, so the account lands in the review queue)."""
+    Only when both pass is the answer Other. When a check overrides Other, the model gave no confidence for the
+    chosen segment, so it is computed from that segment's probability (to_confidence): low, so the account lands in
+    the review queue."""
     if model_pick != "other":
         return model_pick, model_confidence, MODEL_PICK
     top_main = max(SEGMENTS, key=main_scores.get)
     if main_scores[top_main] >= main_blocks_other:
-        return top_main, probabilities[top_main], MAIN_NET
+        return top_main, to_confidence(probabilities[top_main]), MAIN_NET
     if probabilities["other"] < other_from:
         likeliest = max(SEGMENTS, key=probabilities.get)
-        return likeliest, probabilities[likeliest], OTHER_BAR
+        return likeliest, to_confidence(probabilities[likeliest]), OTHER_BAR
     return "other", model_confidence, SURE_OTHER
 
 
@@ -125,12 +135,12 @@ def redecide(row, other_from=OTHER_FROM, main_blocks_other=MAIN_BLOCKS_OTHER):
     saved_as_model_pick = pd.isna(row.get("how")) or row.get("how") in ("", MODEL_PICK)  # older files have no "how"
     if max(probabilities, key=probabilities.get) == "other":
         model_pick = "other"
-        model_confidence = row["confidence"] if row["segment"] == "other" else probabilities["other"]
+        model_confidence = row["confidence"] if row["segment"] == "other" else to_confidence(probabilities["other"])
     elif row["segment"] != "other" and saved_as_model_pick:
         model_pick, model_confidence = row["segment"], row["confidence"]
     else:
         model_pick = max(SEGMENTS, key=probabilities.get)
-        model_confidence = probabilities[model_pick]
+        model_confidence = to_confidence(probabilities[model_pick])
     return choose(model_pick, model_confidence, probabilities, main_scores, other_from, main_blocks_other)
 
 
