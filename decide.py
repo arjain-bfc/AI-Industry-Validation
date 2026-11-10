@@ -36,9 +36,12 @@ HOW AN ACCOUNT IS DECIDED, in order
   6. What gets checked (report.split_for_checking): only a difference from the input file's label (ZoomInfo or
      CRM industry) can need correcting
        we differ from the label AND we are unsure   -> Review sheet (the ones a person should check)
+       a segment under 0.50, even matching the label -> Review sheet too: the model thought something else
+                                                       (usually Other) was at least as likely, so the match proves
+                                                       nothing (CHECK_EVEN_IF_MATCH_BELOW)
        we differ from the label and we are sure     -> Label differences sheet (worth a skim)
        main business No                             -> Non-core sheet (a count to track, nothing to fix)
-       we match the label                           -> nothing to check
+       we match the label (0.50 or more)            -> nothing to check
        no label to compare with                     -> every unsure answer goes to Review
 
 WHY THE NUMBERS ARE WHAT THEY ARE (details and dates in DECISIONS.md)
@@ -74,6 +77,7 @@ HIGH_FROM = 0.90          # 4. probability High (green) from here...
 MEDIUM_FROM = 0.75        #    ...Medium (yellow) from here; under it Low (red), a close call
 SITE_UNSURE_BELOW = 0.40  # 5. unsure: website check under this (and no CRM details on the site)
 THIN_BELOW_WORDS = 150    # 5. unsure: fewer words of website text than this were sent
+CHECK_EVEN_IF_MATCH_BELOW = 0.50  # 6. a segment this unlikely goes to Review even when it matches the label
 
 # Which rule decided the segment (choose()'s third value; shown in the rationale and the evidence log)
 MODEL_PICK, OTHER_BAR, MAIN_NET, SURE_OTHER = "model's pick", "Other bar", "main-business safety net", "sure Other"
@@ -234,9 +238,11 @@ def how_it_decides():
         ("6. How sure, and rationale", f"The model's probability for the result. High: {HIGH_FROM:.0%}+, Medium: "
          f"{MEDIUM_FROM:.0%}-{HIGH_FROM:.0%}, Low: below that (a close call). Each account has a short rationale built from the same numbers: which rule "
          "decided it, main business, the pages naming the work, and how the website was confirmed."),
-        ("7. What to check", "Only a difference from the CRM or ZoomInfo label can need correcting; accounts that "
-         "match are left alone. Review lists the differences where our answer is unsure (a close call, a different "
-         "segment that looks like the main business, a doubtful website, very little website text). Label "
+        ("7. What to check", "Mostly a difference from the CRM or ZoomInfo label is what can need correcting. Review "
+         "lists the differences where our answer is unsure (a close call, a different segment that looks like the "
+         "main business, a doubtful website, very little website text), and also any segment under "
+         f"{CHECK_EVEN_IF_MATCH_BELOW:.0%} even when it matches the label: the model thought something else (usually "
+         "Other) was at least as likely, so a matching label proves nothing. Other matches are left alone. Label "
          "differences lists the differences where our answer is sure. Non-core lists companies that do a segment's "
          "work alongside a different main business. Verdicts and notes are kept when the report is rebuilt."),
     ]

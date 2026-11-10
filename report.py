@@ -150,9 +150,11 @@ def summary_tables(table, stages, label_name):
 
 # --- Writing the workbook ----------------------------------------------------------------------------------------
 def split_for_checking(table):
-    """The sheets that need a look, from the Accounts table. Only a difference from the label can need correcting:
-    when our industry matches the CRM or ZoomInfo label, nothing changes in the CRM, however sure the model was.
-      Review              we differ from the label, and our answer is unsure (a reason in "Why review")
+    """The sheets that need a look, from the Accounts table. Mostly only a difference from the label can need
+    correcting: when our industry matches the CRM or ZoomInfo label, nothing changes in the CRM.
+      Review              we differ from the label, and our answer is unsure (a reason in "Why review"); and any
+                          segment under decide.CHECK_EVEN_IF_MATCH_BELOW (0.50), even matching the label: the model
+                          thought something else was at least as likely, so the matching label proves nothing
       Label differences   we differ from the label, and our answer is sure
       Non-core            main business No: the company does the segment's work alongside a different main business
     With no label to compare with (an input file without an industry), Review holds every unsure answer instead."""
@@ -161,7 +163,8 @@ def split_for_checking(table):
     unsure = table["Why review"] != ""
     if "Match" in table:
         differs = table["Match"] == "Mismatch"
-        review, label_differences = table[differs & unsure], table[differs & ~unsure]
+        unlikely_segment = (table["Our industry"] != "Other") & (table["Probability"] < decide.CHECK_EVEN_IF_MATCH_BELOW)
+        review, label_differences = table[(differs & unsure) | unlikely_segment], table[differs & ~unsure]
     else:
         review, label_differences = table[unsure], table.iloc[0:0]
     return {"Review": review.copy(), "Label differences": label_differences.copy(),

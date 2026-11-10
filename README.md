@@ -51,10 +51,11 @@ earlier set.
    alongside a different main business (an auto repair shop that also tows: Towing, main business No).
 5. **How sure.** The model's probability for the result is coloured: green High (90% or more), yellow Medium
    (75-90%), red Low (under 75%, a close call). Each account also gets a short rationale built from the same numbers.
-6. **What to check.** Only a difference from the CRM or ZoomInfo label can need correcting; accounts that match the
-   label are left alone. Three sheets:
+6. **What to check.** Mostly only a difference from the CRM or ZoomInfo label can need correcting. Three sheets:
    - **Review:** we differ from the label AND our answer is unsure (a close call, another segment that looks like
-     the main business, a doubtful website, very little website text). The ones to check.
+     the main business, a doubtful website, very little website text); plus any segment under 50% even when it
+     matches the label, since the model thought something else (usually Other) was at least as likely. The ones
+     to check.
    - **Label differences:** we differ from the label and our answer is sure. Usually the label is wrong for our
      purposes (a home builder labelled Light Construction); skim them, above all the ones we call Other.
    - **Non-core:** companies that do a segment's work alongside a different main business, kept to count them.

@@ -3,6 +3,14 @@
 The code says what happens; this file says why. Newest first.
 
 ## 2026-11-10
+- **Unlikely segments are checked even when they match the label.** On the 590-account run, 45 of 52 Low answers
+  matched ZoomInfo and so were never checked. 22 of them were segments kept only by the Other bar (the model leaned
+  Other at 0.53-0.80), e.g. a real estate firm, a towing consultant and a subcontractor network labelled Light
+  Construction or Towing; ZoomInfo agreeing proves nothing there. Any segment under 0.50
+  (`CHECK_EVEN_IF_MATCH_BELOW`) now goes to Review: every Other-bar keep is under 0.50 by definition (Other was the
+  model's likeliest option), plus a few coin-flips. 0.40 was rejected: it missed 4 of the Other-bar keeps and has no
+  clear meaning. Review on that run: 15 -> 41. Matching answers from 0.50 to 0.75 (mostly auto shops that tow, lawn
+  companies) still aren't checked.
 - **Probability instead of confidence.** The model's confidence field is its probability rescaled so a blind guess
   counts as 0: (p - 1/6) / (1 - 1/6) (checked on 1,000+ saved answers). When a threshold overrides Other the model
   gives no confidence for the segment we keep, so the column mixed two measures. Every decision rule already works on
