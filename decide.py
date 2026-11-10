@@ -28,13 +28,13 @@ HOW AN ACCOUNT IS DECIDED, in order
        Low     under 0.75: a close call        red
        The same measure for every account, whichever rule decided it: when a safety net overrode Other, it is the
        chosen segment's probability (usually low, so it shows red)
-  5. Unsure? (review_reasons): any of these makes an answer unsure
+  5. Unsure? (review_reasons): any of these makes an answer unsure, and is written in the "Why review" column
        a close call (probability under 0.75)
        a segment other than ours has a main-business score of 0.40 or more
        site_match under 0.40 (SITE_UNSURE_BELOW) with no CRM details on the site
        fewer than 150 words of website text were sent (THIN_BELOW_WORDS)
-  6. What gets checked (report.split_for_checking): only a difference from the input file's label (ZoomInfo or
-     CRM industry) can need correcting
+  6. What gets checked (report.split_for_checking): mostly a difference from the input file's label (ZoomInfo or
+     CRM industry), since a match changes nothing in the CRM; the one exception is a very unlikely segment
        we differ from the label AND we are unsure   -> Review sheet (the ones a person should check)
        a segment under 0.50, even matching the label -> Review sheet too: the model thought something else
                                                        (usually Other) was at least as likely, so the match proves
@@ -197,7 +197,9 @@ def review_reasons(row):
       another segment looks main   a segment other than ours has a main-business score of 40% or more
       website may not be theirs    website check under 40% and no CRM details on the site
       little website text          fewer than 150 words were sent to the model
-    Disagreement with the input file's label is added by the report."""
+    Disagreement with the input file's label is added by the report. Which answers reach the Review sheet (an
+    unsure answer that differs from the label, or any segment under CHECK_EVEN_IF_MATCH_BELOW): see section 6 at the
+    top of this file and report.split_for_checking."""
     reasons = []
     if row["probability"] < MEDIUM_FROM:
         reasons.append(f"close call with {runner_up(row)}")
