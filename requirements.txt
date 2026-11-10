@@ -1,0 +1,10 @@
+﻿# Python 3.11+. After installing, run once: crawl4ai-setup   (downloads the browsers Crawl4AI uses)
+crawl4ai>=0.9.5        # the crawler (Phase 1)
+model2vec>=0.10.0      # small local embedding model for page ranking
+numpy>=2.5
+pandas>=3.1
+openpyxl>=3.1          # reads the input file, writes the report
+requests>=2.34         # model calls
+python-dotenv>=1.2     # loads API keys from .env
+playwright>=1.64       # browser used by Crawl4AI
+ipykernel>=7.4         # to run the notebooks

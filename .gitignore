@@ -1,0 +1,19 @@
+﻿# Secrets: API keys live in .env (see README)
+.env
+api_keys.json
+
+# Account data: never push (input files, crawl store, answers, evidence logs, reports)
+data/
+*.xlsx
+*.xls
+*.csv
+*.jsonl
+~$*
+
+# Old backups (git history replaces them)
+old_versions/
+
+# Run and editor leftovers
+_crawl_jobs/
+__pycache__/
+.ipynb_checkpoints/
