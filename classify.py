@@ -179,7 +179,7 @@ def crm_evidence(record, contact):
 
 
 # --- The answers file --------------------------------------------------------------------------------------------
-FIELDS = ["account_id", "excel_row", "name", "url", "label", "status", "segment", "confidence", "how", "main_business",
+FIELDS = ["account_id", "excel_row", "name", "url", "label", "status", "segment", "probability", "how", "main_business",
           "site_match", "crm_evidence", "evidence", "pages_sent", "words_sent",
           *[f"p_{o}" for o in decide.OPTIONS], *[f"main_{s}" for s in SEGMENTS],
           "input_tokens", "seconds", "error_stage", "error", "run_at"]
@@ -188,10 +188,10 @@ QUESTIONS_VERSION = hashlib.md5(json.dumps(QUESTIONS, sort_keys=True).encode()).
 
 def answer_row(answers):
     """The model's answers (probabilities) plus the decisions made from them (decide.py)."""
-    chosen, confidence, how = decide.segment(answers)
+    chosen, probability, how = decide.segment(answers)
     main = decide.main_business(answers, chosen)
     probs = answers["industry"]["probabilities"]
-    return {"segment": chosen, "confidence": round(confidence, 3), "how": how,
+    return {"segment": chosen, "probability": round(probability, 3), "how": how,
             "main_business": None if main is None else round(main, 3),
             "site_match": round(answers["site_match"]["noul"], 3),
             **{f"p_{o}": round(probs.get(o, 0), 3) for o in decide.OPTIONS},
@@ -305,8 +305,8 @@ def log_record(rec, stage, outcome, problem=None, state=None, row=None, crm=""):
             "model": model_api.MODELS["decision1"]["model"], "questions_version": QUESTIONS_VERSION, "input_tokens": row.get("input_tokens"),
             "probabilities": {o: row[f"p_{o}"] for o in decide.OPTIONS},
             "main_business_scores": {s: row[f"main_{s}"] for s in SEGMENTS},
-            "rule": row["how"], "segment": decide.LABELS[row["segment"]], "confidence": row["confidence"],
-            "confidence_band": decide.confidence_band(row["confidence"]),
+            "rule": row["how"], "segment": decide.LABELS[row["segment"]], "probability": row["probability"],
+            "how_sure": decide.how_sure(row["probability"]),
             "main_business": decide.main_yes(row["main_business"]), "rationale": decide.rationale(row),
             "thresholds": {"other_from": decide.OTHER_FROM, "main_blocks_other": decide.MAIN_BLOCKS_OTHER,
                            "main_yes_from": decide.MAIN_YES_FROM}}
@@ -360,7 +360,7 @@ def handle(rec, state, crm, future, store_path):
     if rec["status"] == "wrong_site":  # CRM details now prove it: clear the old mark
         mark_site(store_path, rec, "ok", by="crm_details")
     main = decide.main_yes(row["main_business"])
-    said = f"{decide.LABELS[row['segment']]} {row['confidence']:.0%}" + (f", main business {main}" if main else "")
+    said = f"{decide.LABELS[row['segment']]} {row['probability']:.0%}" + (f", main business {main}" if main else "")
     return row, log_record(rec, DECISION, "classified", None, state, row, crm), said
 
 

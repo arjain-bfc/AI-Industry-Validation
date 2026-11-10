@@ -22,16 +22,14 @@ HOW AN ACCOUNT IS DECIDED, in order
   3. Main business (main_yes)
        the chosen segment's main-business score is 0.40 or more (MAIN_YES_FROM)   -> Yes; otherwise No; blank for
        Other. No means the company does the work alongside a different main business ("non-core")
-  4. Confidence (confidence_band), shown as the colour of the confidence cell
-       High    85% or more (HIGH_FROM)         green
-       Medium  70% to 85% (MEDIUM_FROM)        yellow
-       Low     under 70%: a close call         red
-       Confidence = the probability of the answer, rescaled so a blind guess counts as 0 (to_confidence): with six
-       options a blind guess is 1/6, so confidence = (p - 1/6) / (1 - 1/6). The model gives this for its own pick;
-       when a safety net overrode Other, the same formula is applied to the chosen segment's probability (usually
-       low, so it shows red)
+  4. How sure (how_sure): the model's probability for the result, shown as the colour of the Probability cell
+       High    0.90 or more (HIGH_FROM)        green
+       Medium  0.75 to 0.90 (MEDIUM_FROM)      yellow
+       Low     under 0.75: a close call        red
+       The same measure for every account, whichever rule decided it: when a safety net overrode Other, it is the
+       chosen segment's probability (usually low, so it shows red)
   5. Unsure? (review_reasons): any of these makes an answer unsure
-       a close call (confidence under 70%)
+       a close call (probability under 0.75)
        a segment other than ours has a main-business score of 0.40 or more
        site_match under 0.40 (SITE_UNSURE_BELOW) with no CRM details on the site
        fewer than 150 words of website text were sent (THIN_BELOW_WORDS)
@@ -49,7 +47,8 @@ WHY THE NUMBERS ARE WHAT THEY ARE (details and dates in DECISIONS.md)
                        businesses as true Others, so the bar leans to keeping them
   0.50 safety net      true Others' highest main-business score was 0.27 at most, brokers and dealers included
   0.40 main Yes        side lines score about 0.0-0.1, real main businesses 0.5-1.0
-  0.85 / 0.70 bands    0.70 is the close-call line used since the start; 0.85 separates the clear answers
+  0.90 / 0.75 bands    the earlier lines on the model's confidence field (0.85 and 0.70) put on the probability scale
+                       (0.70 -> 0.75, 0.85 -> 0.875, rounded up to 0.90); one measure in every column
   In 0.05 steps on purpose: the model's scores move by up to 0.2 between calls, so finer bars only follow noise.
 
 OTHER NUMBERS, AND WHERE THEY LIVE
@@ -71,8 +70,8 @@ WRONG_SITE_BELOW = 0.15   # 1. website check: under this, not the company's webs
 OTHER_FROM = 0.80         # 2b. Other bar: Other only when the model is at least this sure
 MAIN_BLOCKS_OTHER = 0.50  # 2a. safety net: a main-business score this high gets that segment, never Other
 MAIN_YES_FROM = 0.40      # 3. main business Yes from here
-HIGH_FROM = 0.85          # 4. confidence High (green) from here...
-MEDIUM_FROM = 0.70        #    ...Medium (yellow) from here; under it Low (red), a close call
+HIGH_FROM = 0.90          # 4. probability High (green) from here...
+MEDIUM_FROM = 0.75        #    ...Medium (yellow) from here; under it Low (red), a close call
 SITE_UNSURE_BELOW = 0.40  # 5. unsure: website check under this (and no CRM details on the site)
 THIN_BELOW_WORDS = 150    # 5. unsure: fewer words of website text than this were sent
 
@@ -88,32 +87,23 @@ def wrong_site(site_match, crm_evidence, cleared_by_hand=False):
 
 
 # --- 2. Segment ------------------------------------------------------------------------------------------------
-def to_confidence(probability):
-    """The model's own confidence formula, for a segment it didn't pick: the probability rescaled so a blind guess
-    (1 in 6 options) counts as 0 and certainty as 1. Example: 0.75 -> (0.75 - 1/6) / (5/6) = 0.70. Under 1/6 it is 0."""
-    guess = 1 / len(OPTIONS)
-    return max(0.0, (probability - guess) / (1 - guess))
-
-
-def choose(model_pick, model_confidence, probabilities, main_scores, other_from=OTHER_FROM,
-           main_blocks_other=MAIN_BLOCKS_OTHER):
-    """The segment rule, in one place: (segment, confidence, which rule decided it).
+def choose(model_pick, probabilities, main_scores, other_from=OTHER_FROM, main_blocks_other=MAIN_BLOCKS_OTHER):
+    """The segment rule, in one place: (segment, its probability, which rule decided it).
 
     The model's own pick stands, except that Other must pass two checks first:
       1. main-business safety net: if some segment's main-business score is main_blocks_other or more, that segment
       2. Other bar: if the model's probability for Other is under other_from, the likeliest segment
-    Only when both pass is the answer Other. When a check overrides Other, the model gave no confidence for the
-    chosen segment, so it is computed from that segment's probability (to_confidence): low, so the account lands in
-    the review queue."""
+    Only when both pass is the answer Other. The probability returned is always the chosen answer's own; when a
+    check overrides Other it is low, so the account lands in the review queue."""
     if model_pick != "other":
-        return model_pick, model_confidence, MODEL_PICK
+        return model_pick, probabilities[model_pick], MODEL_PICK
     top_main = max(SEGMENTS, key=main_scores.get)
     if main_scores[top_main] >= main_blocks_other:
-        return top_main, to_confidence(probabilities[top_main]), MAIN_NET
+        return top_main, probabilities[top_main], MAIN_NET
     if probabilities["other"] < other_from:
         likeliest = max(SEGMENTS, key=probabilities.get)
-        return likeliest, to_confidence(probabilities[likeliest]), OTHER_BAR
-    return "other", model_confidence, SURE_OTHER
+        return likeliest, probabilities[likeliest], OTHER_BAR
+    return "other", probabilities["other"], SURE_OTHER
 
 
 def segment(answers):
@@ -121,7 +111,7 @@ def segment(answers):
     industry = answers["industry"]
     probabilities = {o: industry["probabilities"].get(o, 0) for o in OPTIONS}
     main_scores = {s: answers[f"main_{s}"]["noul"] for s in SEGMENTS}
-    return choose(industry["choice"], industry["confidence"], probabilities, main_scores)
+    return choose(industry["choice"], probabilities, main_scores)
 
 
 def redecide(row, other_from=OTHER_FROM, main_blocks_other=MAIN_BLOCKS_OTHER):
@@ -135,13 +125,11 @@ def redecide(row, other_from=OTHER_FROM, main_blocks_other=MAIN_BLOCKS_OTHER):
     saved_as_model_pick = pd.isna(row.get("how")) or row.get("how") in ("", MODEL_PICK)  # older files have no "how"
     if max(probabilities, key=probabilities.get) == "other":
         model_pick = "other"
-        model_confidence = row["confidence"] if row["segment"] == "other" else to_confidence(probabilities["other"])
     elif row["segment"] != "other" and saved_as_model_pick:
-        model_pick, model_confidence = row["segment"], row["confidence"]
+        model_pick = row["segment"]
     else:
         model_pick = max(SEGMENTS, key=probabilities.get)
-        model_confidence = to_confidence(probabilities[model_pick])
-    return choose(model_pick, model_confidence, probabilities, main_scores, other_from, main_blocks_other)
+    return choose(model_pick, probabilities, main_scores, other_from, main_blocks_other)
 
 
 # --- 3. Main business ------------------------------------------------------------------------------------------
@@ -156,13 +144,16 @@ def main_yes(value):
 
 
 # --- 4. How sure, and why ----------------------------------------------------------------------------------------
-def confidence_band(confidence):
-    return "High" if confidence >= HIGH_FROM else "Medium" if confidence >= MEDIUM_FROM else "Low"
+def how_sure(probability):
+    """'High', 'Medium' or 'Low' for the result's probability (Low = a close call)."""
+    return "High" if probability >= HIGH_FROM else "Medium" if probability >= MEDIUM_FROM else "Low"
 
 
 def runner_up(row):
-    """The second likeliest option, e.g. 'Other (36%)'."""
-    second = sorted(OPTIONS, key=lambda o: row[f"p_{o}"], reverse=True)[1]
+    """The likeliest option other than our answer, e.g. 'Other (36%)'. (When a threshold kept a segment, Other is
+    the likeliest option of all, so the runner-up is Other, not the second on the list.)"""
+    others = [o for o in OPTIONS if o != row["segment"]]
+    second = max(others, key=lambda o: row[f"p_{o}"])
     return f"{LABELS[second]} ({row[f'p_{second}']:.0%})"
 
 
@@ -182,7 +173,7 @@ def rationale(row, other_from=OTHER_FROM):
     elif how == MAIN_NET:
         parts = [f"{label}: looks like its main business ({row[f'main_{segment}']:.0%}), so not Other"]
     else:
-        parts = [f"{label}, {row['confidence']:.0%} sure"]
+        parts = [f"{label}, {row['probability']:.0%} sure"]
     if segment != "other":
         parts.append(f"Main business: {main_yes(row['main_business']).lower()}")
     pages = row.get("evidence") if isinstance(row.get("evidence"), str) else ""
@@ -198,13 +189,13 @@ def rationale(row, other_from=OTHER_FROM):
 def review_reasons(row):
     """Why an answer deserves a second look, e.g. 'close call with Other (36%); little website text'. '' = none.
     Each reason, in order:
-      close call                   confidence under 70% (shown red); names the runner-up, e.g. "Other (36%)"
+      close call                   probability under 75% (shown red); names the runner-up, e.g. "Other (36%)"
       another segment looks main   a segment other than ours has a main-business score of 40% or more
       website may not be theirs    website check under 40% and no CRM details on the site
       little website text          fewer than 150 words were sent to the model
     Disagreement with the input file's label is added by the report."""
     reasons = []
-    if row["confidence"] < MEDIUM_FROM:
+    if row["probability"] < MEDIUM_FROM:
         reasons.append(f"close call with {runner_up(row)}")
     other_main = [s for s in SEGMENTS if s != row["segment"] and row[f"main_{s}"] >= MAIN_YES_FROM]
     if other_main:
@@ -240,8 +231,8 @@ def how_it_decides():
         ("5. Main business", f"Yes: the segment's work is the company's main business. No: the company does the work, "
          f"but alongside a different main business (an auto repair shop that also tows). Yes from "
          f"{MAIN_YES_FROM:.0%}. Blank for Other."),
-        ("6. Confidence and rationale", f"High: {HIGH_FROM:.0%}+, Medium: {MEDIUM_FROM:.0%}-{HIGH_FROM:.0%}, Low: "
-         "below that (a close call). Each account has a short rationale built from the same numbers: which rule "
+        ("6. How sure, and rationale", f"The model's probability for the result. High: {HIGH_FROM:.0%}+, Medium: "
+         f"{MEDIUM_FROM:.0%}-{HIGH_FROM:.0%}, Low: below that (a close call). Each account has a short rationale built from the same numbers: which rule "
          "decided it, main business, the pages naming the work, and how the website was confirmed."),
         ("7. What to check", "Only a difference from the CRM or ZoomInfo label can need correcting; accounts that "
          "match are left alone. Review lists the differences where our answer is unsure (a close call, a different "

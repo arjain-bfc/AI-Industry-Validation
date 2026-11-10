@@ -49,8 +49,8 @@ earlier set.
    score under 50%). Otherwise it gets the likeliest segment.
 4. **Main business, Yes or No.** Yes when the segment's work is the company's main business; No when it does the work
    alongside a different main business (an auto repair shop that also tows: Towing, main business No).
-5. **How sure.** The confidence is coloured: green High (85% or more), yellow Medium (70-85%), red Low (under 70%, a
-   close call). Each account also gets a short rationale built from the same numbers.
+5. **How sure.** The model's probability for the result is coloured: green High (90% or more), yellow Medium
+   (75-90%), red Low (under 75%, a close call). Each account also gets a short rationale built from the same numbers.
 6. **What to check.** Only a difference from the CRM or ZoomInfo label can need correcting; accounts that match the
    label are left alone. Three sheets:
    - **Review:** we differ from the label AND our answer is unsure (a close call, another segment that looks like
@@ -63,7 +63,7 @@ earlier set.
 ## The outputs
 
 - **Output 1, the evaluation dataset:** the report's Accounts sheet (also saved as `report_..._accounts.csv`), with one
-  row for **every account in the input file**. A classified account shows the result, confidence, main business, the
+  row for **every account in the input file**. A classified account shows the result, its probability, main business, the
   CRM or ZoomInfo industry, Match/Mismatch, our probability for the label's industry and a one-line rationale
   ("Towing, 92% sure. Main business: no. Pages: /24-hour-towing"). An account that wasn't classified shows the stage it
   stopped at (1 crawl, 2 website text, 3 model call, 4 website check) and why. The Guide sheet explains every column,
@@ -105,7 +105,7 @@ broken down in comments with examples (a key to reading the patterns is at the t
 
 | To change... | Edit | Then |
 |---|---|---|
-| A threshold (Other bar, main-business safety net, confidence colours, website check) | the top of `decide.py` | rebuild the report: no new calls needed |
+| A threshold (Other bar, main-business safety net, probability colours, website check) | the top of `decide.py` | rebuild the report: no new calls needed |
 | What the model is asked | `questions.py` | test on known accounts first; give the answers file a new name |
 | Add a segment | `questions.py` (a new entry in `DEFINITIONS`, with its main-business examples), `decide.py` (`LABELS`), `page_rules.py` (`SEGMENT_WORDS`, `SEGMENT_PHRASES`) | a new answers file |
 | Which pages are fetched first | `page_rules.py` (word lists at the top) | applies from the next crawl |

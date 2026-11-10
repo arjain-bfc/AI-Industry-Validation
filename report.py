@@ -33,13 +33,13 @@ KEY = {label.lower(): option for option, label in decide.LABELS.items()}  # "sep
 
 # --- Output 1: one row per classified account --------------------------------------------------------------------
 def current_decision(answers, **bars):
-    """The saved answers with segment, confidence, rule and main business worked out again under today's thresholds
+    """The saved answers with segment, probability, rule and main business worked out again under today's thresholds
     (decide.redecide), so answers saved under earlier thresholds read the same as new ones. bars: a model's own
     other_from / main_blocks_other, used by the model comparison."""
     answers = answers.copy()
-    decisions = [decide.redecide(row, **bars) for _, row in answers.iterrows()]  # (segment, confidence, rule)
+    decisions = [decide.redecide(row, **bars) for _, row in answers.iterrows()]  # (segment, probability, rule)
     answers["segment"] = [segment for segment, _, _ in decisions]
-    answers["confidence"] = [confidence for _, confidence, _ in decisions]
+    answers["probability"] = [probability for _, probability, _ in decisions]
     answers["how"] = [rule for _, _, rule in decisions]
     # main business is the score for the chosen segment; none for Other
     answers["main_business"] = [None if segment == "other" else row[f"main_{segment}"]
@@ -76,7 +76,7 @@ def accounts_table(answers, label_name):
     if has_label:
         table[f"{label_name} industry"] = label
     table["Our industry"] = ours
-    table["Confidence"] = ok["confidence"]
+    table["Probability"] = ok["probability"]
     table["Main business"] = ok["main_business"].map(decide.main_yes)
     if has_label:
         table["Match"] = match
@@ -131,7 +131,7 @@ def summary_tables(table, stages, label_name):
     if not table.empty:
         out["Accounts per industry, by main business"] = pd.crosstab(
             table["Our industry"], table["Main business"].replace("", "(Other)"), margins=True, margins_name="Total")
-        out["Confidence"] = (table["Confidence"].map(decide.confidence_band).value_counts()
+        out["How sure"] = (table["Probability"].map(decide.how_sure).value_counts()
                              .reindex(["High", "Medium", "Low"]).fillna(0)
                              .astype(int).to_frame("accounts"))
         out["Where the accounts are"] = pd.DataFrame({"accounts": [
@@ -197,7 +197,7 @@ HEADER_FILLS = [  # (words in the column name, header colour): which group a col
     (("rationale", "why", "problem", "notes", "verdict"), "EDEDED"),  # explanations, review
     (("industry", "decision-1", "jev", "match", "agree", "stage", "outcome"), "DDEBF7"),  # the answers
 ]
-BAND_FILLS = {"High": "C6EFCE", "Medium": "FFEB9C", "Low": "FFC7CE"}  # a confidence cell's colour, by band
+BAND_FILLS = {"High": "C6EFCE", "Medium": "FFEB9C", "Low": "FFC7CE"}  # a Probability cell's colour, by how sure
 VALUE_FILLS = {"Match": "C6EFCE", "Mismatch": "FFC7CE"}                # agreement with the label
 AGREE_FILLS = {"Yes": "C6EFCE", "No": "FFC7CE"}                         # "Models agree" only
 
@@ -228,10 +228,11 @@ def write_sheet(ws, table, wrap=()):
         for cell in ws[letter][1:]:
             if column in wrap:
                 cell.alignment = Alignment(wrap_text=True, vertical="top")
-            if "confidence" in column.lower() or column.startswith("Our probability"):
+            result_probability = column == "Probability" or column.endswith(" probability")  # not "Our probability for..."
+            if result_probability or column.startswith("Our probability"):
                 cell.number_format = "0%"
-            if "confidence" in column.lower() and isinstance(cell.value, (int, float)):
-                cell.fill = PatternFill("solid", fgColor=BAND_FILLS[decide.confidence_band(cell.value)])
+            if result_probability and isinstance(cell.value, (int, float)):
+                cell.fill = PatternFill("solid", fgColor=BAND_FILLS[decide.how_sure(cell.value)])
             elif cell.value in fills:
                 cell.fill = PatternFill("solid", fgColor=fills[cell.value])
     ws.freeze_panes = "C2"
@@ -275,7 +276,7 @@ def thresholds_guide(bars=None):
         ("Main-business safety net", f"{bars['main_blocks_other']:.2f}: Other only when every segment's main-business "
                                      "score is below this; otherwise that segment"),
         ("Main business Yes from", f"{decide.MAIN_YES_FROM:.2f}"),
-        ("Confidence colours", f"green = High ({decide.HIGH_FROM:.0%} or more), yellow = Medium "
+        ("Probability colours", f"green = High ({decide.HIGH_FROM:.0%} or more), yellow = Medium "
                                f"({decide.MEDIUM_FROM:.0%} to {decide.HIGH_FROM:.0%}), red = Low (under "
                                f"{decide.MEDIUM_FROM:.0%}: a close call, so it is in the review queue)"),
         ("Website check", f"below {decide.WRONG_SITE_BELOW:.2f} the site isn't the company's (not classified), unless "
@@ -292,8 +293,8 @@ def report_guide(label_name):
             (label, f"the industry the input file gives ({label_name or 'none'}); never used to decide"),
             ("Result", "our segment, or Other (the equipment we could finance); 'not classified' when the account "
                        "stopped before a decision (see Stopped at and Problem)"),
-            ("Confidence", "how sure the model is of the result: its probability, rescaled so a blind guess (1 in 6) "
-                           "counts as 0%. Coloured green, yellow or red by how sure (see Thresholds)"),
+            ("Probability", "the model's probability for the result (0-100%). Coloured green, yellow or red by how "
+                            "sure (see Thresholds)"),
             ("Main business", "Yes: the segment's work is the main business. No: done alongside another main "
                               "business. Blank for Other"),
             ("Match", f"our industry is the same as the {label_name or 'label'} industry"),
@@ -323,7 +324,7 @@ def report_guide(label_name):
         ],
         "Colours": [
             ("Headers", "blue: the answers; orange: how sure; green: main business; grey: explanations"),
-            ("Cells", "Confidence: green High, yellow Medium, red Low. Match green, Mismatch red"),
+            ("Cells", "Probability: green High, yellow Medium, red Low. Match green, Mismatch red"),
         ],
         "Thresholds in use (decide.py)": thresholds_guide(),
     }
@@ -343,7 +344,7 @@ def every_account(table, stages, input_xlsx=None):
     results["Result"] = results["Our industry"].fillna("not classified")
     first = ["account_id", "Account", "Website", *[c for c in table.columns if c.endswith(" industry")
                                                     and c != "Our industry" and not c.startswith("Our ")]]
-    result_columns = ["Result", "Confidence", "Main business", "Match",
+    result_columns = ["Result", "Probability", "Main business", "Match",
                       *[c for c in table.columns if c.startswith("Our probability")], "Rationale", "Why review"]
     stopped = ["Stage reached", "Problem", "Crawl", "Pages crawled", "CRM"]
     ordered = [c for c in first + result_columns + stopped if c in results.columns]

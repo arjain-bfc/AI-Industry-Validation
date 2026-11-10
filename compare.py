@@ -72,7 +72,7 @@ def run(store_path, input_xlsx, answers_csv, models=("decision1", "jev"), worker
             row = answer(rec, state, crm, m, future)
             append(answers_csv, row)
             n += 1
-            said = row["error"] or f"{decide.LABELS[row['segment']]} {row['confidence']:.0%}"
+            said = row["error"] or f"{decide.LABELS[row['segment']]} {row['probability']:.0%}"
             print(f"[{n}/{len(todo)}] {model_api.MODELS[m]['name']:10} {row['name'][:36]:36} | {said}")
     print(f"\n{n} calls in {(time.perf_counter() - start) / 60:.1f} min. Re-run to retry failures.")
 
@@ -85,7 +85,7 @@ def bars_for(model, thresholds):
 
 def side_by_side(answers_csv, label_name="", models=("decision1", "jev"), thresholds=None):
     """One row per account, grouped so related columns sit together: the industries (label, each model, agreement,
-    each model vs the label), then the confidences (coloured by how sure), then main business, then the rationales.
+    each model vs the label), then the probabilities (coloured by how sure), then main business, then the rationales.
     Each model's scores go through decide.redecide with its own bars."""
     answers = pd.read_csv(answers_csv, dtype={"account_id": str})
     answers = answers[answers.status == "ok"].drop_duplicates(["model", "account_id"], keep="last")
@@ -115,7 +115,7 @@ def side_by_side(answers_csv, label_name="", models=("decision1", "jev"), thresh
             wide[f"{name} vs {label_name}"] = matches.map({True: "Match", False: "Mismatch"}).where(wide[name].notna(), "")
     # 2. How sure, 3. main business, 4. why
     for name in names:
-        wide[f"{name} confidence"] = decisions[name]["confidence"]
+        wide[f"{name} probability"] = decisions[name]["probability"]
     for name in names:
         wide[f"{name} main business"] = decisions[name]["main_business"].map(decide.main_yes)
     for name in names:
@@ -157,14 +157,14 @@ def guide(label_name, models, thresholds):
         (" / ".join(names), "each model's industry after our thresholds (its own bars, below)"),
         ("Models agree", "Yes when both models give the same industry"),
         *([(f"<model> vs {label_name}", f"Match when that model gives the {label_name} industry")] if label_name else []),
-        ("<model> confidence", "the model's probability for its industry, coloured by how sure: green High, "
+        ("<model> probability", "the model's probability for its industry, coloured by how sure: green High, "
                                "yellow Medium, red Low (Thresholds below)"),
         ("<model> main business", "Yes: that segment's work is the main business; No: done alongside another; "
                                   "blank for Other"),
         ("<model> rationale", "why: the rule that decided it, main business, pages naming the work, website check"),
     ], "Colours": [
         ("Headers", "blue: the answers; orange: how sure; green: main business; grey: explanations"),
-        ("Cells", "confidence: green High, yellow Medium, red Low; Match and agree green, Mismatch and disagree red"),
+        ("Cells", "probability: green High, yellow Medium, red Low; Match and agree green, Mismatch and disagree red"),
     ], "Summary: the Other bar tables": [
         ("What they show", "for each model, how many accounts it would call Other if its Other bar were 0.60, 0.65, "
          "... 0.95 ('<- in use' marks the bar set now). A higher bar means fewer Others: accounts the model is "
@@ -189,15 +189,16 @@ def report(answers_csv, report_xlsx, label_name="", models=("decision1", "jev"),
         summary[f"{names[0]} (rows) vs {names[1]} (columns)"] = pd.crosstab(both[names[0]], both[names[1]],
                                                                          margins=True, margins_name="Total")
     # One small table per question, with a column per model
-    industries, confidence, against_label = {}, {}, {}
+    industries, sure, against_label = {}, {}, {}
     for name in names:
         industries[name] = table[name].value_counts()
-        bands = table[f"{name} confidence"].dropna().map(decide.confidence_band)
-        confidence[name] = bands.value_counts().reindex(["High", "Medium", "Low"])
+        bands = table[f"{name} probability"].dropna().map(decide.how_sure)
+        sure[name] = bands.value_counts().reindex(["High", "Medium", "Low"])
         if label_name:
             against_label[name] = table[f"{name} vs {label_name}"].value_counts()
     summary["Industries"] = pd.DataFrame(industries).fillna(0).astype(int)
-    summary["Confidence (High 85%+, Medium 70-85%, Low under 70%)"] = pd.DataFrame(confidence).fillna(0).astype(int)
+    summary[f"How sure (High {decide.HIGH_FROM:.0%}+, Medium {decide.MEDIUM_FROM:.0%}-{decide.HIGH_FROM:.0%}, Low under "
+            f"{decide.MEDIUM_FROM:.0%})"] = pd.DataFrame(sure).fillna(0).astype(int)
     if label_name:
         summary[f"Each model vs {label_name}"] = pd.DataFrame(against_label).fillna(0).astype(int)
     for m, name in zip(models, names):

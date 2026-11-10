@@ -3,11 +3,14 @@
 The code says what happens; this file says why. Newest first.
 
 ## 2026-11-10
-- **One confidence scale.** The model's confidence is its probability rescaled so a blind guess counts as 0:
-  (p - 1/6) / (1 - 1/6), checked against 1,000+ saved answers (within 0.001). When a threshold overrides Other, the
-  model gives no confidence for the segment we keep, so the code used to show that segment's plain probability: a
-  different measure in the same column. Now the same formula is applied (`decide.to_confidence`, 0 under 1/6). Only
-  those override rows change (28 of 504 on the last run), all lower; no segment, rule or colour band changed.
+- **Probability instead of confidence.** The model's confidence field is its probability rescaled so a blind guess
+  counts as 0: (p - 1/6) / (1 - 1/6) (checked on 1,000+ saved answers). When a threshold overrides Other the model
+  gives no confidence for the segment we keep, so the column mixed two measures. Every decision rule already works on
+  probabilities, so the report now shows the result's probability everywhere ("Probability" column; `how_sure`).
+  The colour lines moved to the same scale: 0.70 confidence = 0.75 probability, 0.85 = 0.875, rounded up to 0.90.
+  On the last run: same segment and rule for all 504 answers; Low unchanged (55); 18 High became Medium.
+  Also fixed: a close call named the chosen segment as its own runner-up when a threshold had kept it ("close call
+  with Towing" on a Towing account); the runner-up is now the likeliest *other* option (here, Other).
 - **Every account in the final table.** The Accounts sheet (and CSV) has one row per account in the input file: the
   result, or the stage it stopped at and why (accounts the crawl hasn't reached are listed too). The separate Stage
   log sheet is gone.
