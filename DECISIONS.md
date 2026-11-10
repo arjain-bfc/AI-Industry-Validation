@@ -3,6 +3,13 @@
 The code says what happens; this file says why. Newest first.
 
 ## 2026-11-10
+- **Review goes by probability only (replaces the two rules below).** The thresholds are what make the answers
+  robust, so a person checks only a segment the model itself found unlikely: under 0.50 when it differs from the
+  label (`REVIEW_IF_DIFFERS_BELOW`), under 0.30 when it matches it (`REVIEW_IF_MATCHES_BELOW`; under 0.30 every
+  such account on the 590 run was one the model leaned Other on, e.g. a real estate firm and a subcontractor
+  network; 0.25 missed an architecture firm). Doubts (a close call, another segment that looks main, a doubtful
+  website, little text) no longer pick the sheet; they are shown in a "Doubts" column (was "Why review") on every
+  sheet. 590 run: Review 41 -> 15 (3 differ, 12 match), Label differences 137 -> 149.
 - **Unlikely segments are checked even when they match the label.** On the 590-account run, 45 of 52 Low answers
   matched ZoomInfo and so were never checked. 22 of them were segments kept only by the Other bar (the model leaned
   Other at 0.53-0.80), e.g. a real estate firm, a towing consultant and a subcontractor network labelled Light

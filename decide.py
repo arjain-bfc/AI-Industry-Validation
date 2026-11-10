@@ -28,21 +28,20 @@ HOW AN ACCOUNT IS DECIDED, in order
        Low     under 0.75: a close call        red
        The same measure for every account, whichever rule decided it: when a safety net overrode Other, it is the
        chosen segment's probability (usually low, so it shows red)
-  5. Unsure? (review_reasons): any of these makes an answer unsure, and is written in the "Why review" column
+  5. Doubts (review_reasons): shown in the "Doubts" column, so a reader sees what could be wrong with an answer
        a close call (probability under 0.75)
        a segment other than ours has a main-business score of 0.40 or more
        site_match under 0.40 (SITE_UNSURE_BELOW) with no CRM details on the site
        fewer than 150 words of website text were sent (THIN_BELOW_WORDS)
-  6. What gets checked (report.split_for_checking): mostly a difference from the input file's label (ZoomInfo or
-     CRM industry), since a match changes nothing in the CRM; the one exception is a very unlikely segment
-       we differ from the label AND we are unsure   -> Review sheet (the ones a person should check)
-       a segment under 0.50, even matching the label -> Review sheet too: the model thought something else
-                                                       (usually Other) was at least as likely, so the match proves
-                                                       nothing (CHECK_EVEN_IF_MATCH_BELOW)
-       we differ from the label and we are sure     -> Label differences sheet (worth a skim)
-       main business No                             -> Non-core sheet (a count to track, nothing to fix)
-       we match the label (0.50 or more)            -> nothing to check
-       no label to compare with                     -> every unsure answer goes to Review
+     Doubts explain an answer; they don't decide which sheet it goes to.
+  6. What gets checked (report.split_for_checking): the thresholds above already settle each answer, so a person
+     only checks a segment the model itself found unlikely. An Other is never unlikely (it needs 0.80).
+       segment differs from the label, probability under 0.50 (REVIEW_IF_DIFFERS_BELOW)  -> Review sheet
+       segment matches the label, probability under 0.30 (REVIEW_IF_MATCHES_BELOW)       -> Review sheet
+       any other difference from the label                                              -> Label differences (a skim)
+       main business No                                                                 -> Non-core (a count to track)
+       everything else                                                                  -> nothing to check
+       no label to compare with                                                         -> segments under 0.50 to Review
 
 WHY THE NUMBERS ARE WHAT THEY ARE (details and dates in DECISIONS.md)
   0.15 website check   wrong websites score about 0.00-0.10, real ones 0.6 and up; 0.20 rejected real sites
@@ -52,6 +51,9 @@ WHY THE NUMBERS ARE WHAT THEY ARE (details and dates in DECISIONS.md)
   0.40 main Yes        side lines score about 0.0-0.1, real main businesses 0.5-1.0
   0.90 / 0.75 bands    the earlier lines on the model's confidence field (0.85 and 0.70) put on the probability scale
                        (0.70 -> 0.75, 0.85 -> 0.875, rounded up to 0.90); one measure in every column
+  0.50 / 0.30 review  under 0.50 the model found another option (usually Other) at least as likely. A match with
+                       the label is less suspicious, so only seriously low ones are checked: under 0.30 they were all
+                       accounts the model leaned Other on (a real estate firm, a subcontractor network; 2026-11-10)
   In 0.05 steps on purpose: the model's scores move by up to 0.2 between calls, so finer bars only follow noise.
 
 OTHER NUMBERS, AND WHERE THEY LIVE
@@ -77,7 +79,8 @@ HIGH_FROM = 0.90          # 4. probability High (green) from here...
 MEDIUM_FROM = 0.75        #    ...Medium (yellow) from here; under it Low (red), a close call
 SITE_UNSURE_BELOW = 0.40  # 5. unsure: website check under this (and no CRM details on the site)
 THIN_BELOW_WORDS = 150    # 5. unsure: fewer words of website text than this were sent
-CHECK_EVEN_IF_MATCH_BELOW = 0.50  # 6. a segment this unlikely goes to Review even when it matches the label
+REVIEW_IF_DIFFERS_BELOW = 0.50  # 6. a segment that differs from the label goes to Review under this probability...
+REVIEW_IF_MATCHES_BELOW = 0.30  #    ...and one that matches the label only under this (seriously low)
 
 # Which rule decided the segment (choose()'s third value; shown in the rationale and the evidence log)
 MODEL_PICK, OTHER_BAR, MAIN_NET, SURE_OTHER = "model's pick", "Other bar", "main-business safety net", "sure Other"
@@ -191,15 +194,14 @@ def rationale(row, other_from=OTHER_FROM):
 
 # --- 5. Review -------------------------------------------------------------------------------------------------
 def review_reasons(row):
-    """Why an answer deserves a second look, e.g. 'close call with Other (36%); little website text'. '' = none.
+    """What could be wrong with an answer, e.g. 'close call with Other (36%); little website text'. '' = none.
     Each reason, in order:
       close call                   probability under 75% (shown red); names the runner-up, e.g. "Other (36%)"
       another segment looks main   a segment other than ours has a main-business score of 40% or more
       website may not be theirs    website check under 40% and no CRM details on the site
       little website text          fewer than 150 words were sent to the model
-    Disagreement with the input file's label is added by the report. Which answers reach the Review sheet (an
-    unsure answer that differs from the label, or any segment under CHECK_EVEN_IF_MATCH_BELOW): see section 6 at the
-    top of this file and report.split_for_checking."""
+    Disagreement with the input file's label is added by the report. These doubts are shown, not used to pick the
+    Review sheet: that goes by probability (section 6 at the top of this file, report.split_for_checking)."""
     reasons = []
     if row["probability"] < MEDIUM_FROM:
         reasons.append(f"close call with {runner_up(row)}")
@@ -240,11 +242,10 @@ def how_it_decides():
         ("6. How sure, and rationale", f"The model's probability for the result. High: {HIGH_FROM:.0%}+, Medium: "
          f"{MEDIUM_FROM:.0%}-{HIGH_FROM:.0%}, Low: below that (a close call). Each account has a short rationale built from the same numbers: which rule "
          "decided it, main business, the pages naming the work, and how the website was confirmed."),
-        ("7. What to check", "Mostly a difference from the CRM or ZoomInfo label is what can need correcting. Review "
-         "lists the differences where our answer is unsure (a close call, a different segment that looks like the "
-         "main business, a doubtful website, very little website text), and also any segment under "
-         f"{CHECK_EVEN_IF_MATCH_BELOW:.0%} even when it matches the label: the model thought something else (usually "
-         "Other) was at least as likely, so a matching label proves nothing. Other matches are left alone. Label "
-         "differences lists the differences where our answer is sure. Non-core lists companies that do a segment's "
-         "work alongside a different main business. Verdicts and notes are kept when the report is rebuilt."),
+        ("7. What to check", "The thresholds already settle each answer, so a person checks only a segment the model "
+         f"itself found unlikely: Review lists segments under {REVIEW_IF_DIFFERS_BELOW:.0%} that differ from the CRM "
+         f"or ZoomInfo label, and segments under {REVIEW_IF_MATCHES_BELOW:.0%} that match it (the model leaned Other "
+         "and the threshold kept the segment). Label differences lists every other difference from the label (a "
+         "skim). Non-core lists companies that do a segment's work alongside a different main business. The Doubts "
+         "column says what could be wrong with any answer. Verdicts and notes are kept when the report is rebuilt."),
     ]

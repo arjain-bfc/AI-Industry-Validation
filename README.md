@@ -51,15 +51,15 @@ earlier set.
    alongside a different main business (an auto repair shop that also tows: Towing, main business No).
 5. **How sure.** The model's probability for the result is coloured: green High (90% or more), yellow Medium
    (75-90%), red Low (under 75%, a close call). Each account also gets a short rationale built from the same numbers.
-6. **What to check.** Mostly only a difference from the CRM or ZoomInfo label can need correcting. Three sheets:
-   - **Review:** we differ from the label AND our answer is unsure (a close call, another segment that looks like
-     the main business, a doubtful website, very little website text); plus any segment under 50% even when it
-     matches the label, since the model thought something else (usually Other) was at least as likely. The ones
-     to check.
-   - **Label differences:** we differ from the label and our answer is sure. Usually the label is wrong for our
-     purposes (a home builder labelled Light Construction); skim them, above all the ones we call Other.
+6. **What to check.** The thresholds already settle each answer, so a person only checks a segment the model
+   itself found unlikely. Three sheets:
+   - **Review:** a segment under 50% that differs from the CRM or ZoomInfo label, or under 30% that matches it (the
+     model leaned Other and the threshold kept the segment). The ones to check.
+   - **Label differences:** every other difference from the label. Usually the label is wrong for our purposes (a
+     home builder labelled Light Construction); skim them, above all the ones we call Other.
    - **Non-core:** companies that do a segment's work alongside a different main business, kept to count them.
-   With no label to compare with, Review holds every unsure answer.
+   With no label to compare with, Review holds the segments under 50%. The **Doubts** column says what could be
+   wrong with any answer (a close call, a doubtful website, very little website text).
 
 ## The outputs
 

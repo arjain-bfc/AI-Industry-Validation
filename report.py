@@ -5,10 +5,11 @@ Sheets:
   How it decides   the process in plain words, with the thresholds in use
   Guide            what every column means, the colours, and the thresholds in use
   Summary          accounts per segment and main business; agreement with the input file's label; stage counts
-  Review           where we differ from the input file's label (ZoomInfo or CRM) AND our answer is unsure: the
-                   ones to check. Your verdicts and notes are kept when the report is rebuilt
-  Label differences  where we differ from the label and our answer is sure: worth a skim, above all the ones
-                   we call Other. Verdicts and notes kept too. Accounts that match the label need no check
+  Review           segments the model itself found unlikely: under 0.50 when they differ from the input file's
+                   label (ZoomInfo or CRM), under 0.30 when they match it. The ones to check. Your verdicts and
+                   notes are kept when the report is rebuilt
+  Label differences  every other difference from the label: worth a skim, above all the ones we call Other.
+                   Verdicts and notes kept too. Other accounts that match the label need no check
   Non-core         accounts that do a segment's work alongside a different main business (main business No)
   Accounts         every account in the input file (Output 1): the result, how sure, main business, match with the
                    label and a one-line rationale; or, if it wasn't classified, the stage it stopped at and why (the
@@ -68,7 +69,7 @@ def accounts_table(answers, label_name):
         # how much the model backs the label's industry: its probability for that option
         option = KEY.get(label_text.lower())
         backing.append(row.get(f"p_{option}") if option else None)
-    if has_label:  # an unsure account that also differs from the label: say so first
+    if has_label:  # a doubtful answer that also differs from the label: say so first
         review = [f"{label_name} says {label_text}; {why}" if why and m == "Mismatch" else why
                   for m, label_text, why in zip(match, label, review)]
 
@@ -82,7 +83,7 @@ def accounts_table(answers, label_name):
         table["Match"] = match
         table[f"Our probability for the {label_name} industry"] = backing
     table["Rationale"] = ok.apply(decide.rationale, axis=1)
-    table["Why review"] = review
+    table["Doubts"] = review
     table["CRM"] = [CRM_URL.format(account_id=i) for i in ok["account_id"]]
     table["excel_row"] = ok["excel_row"]
     return table.sort_values("excel_row").drop(columns="excel_row")
@@ -150,23 +151,23 @@ def summary_tables(table, stages, label_name):
 
 # --- Writing the workbook ----------------------------------------------------------------------------------------
 def split_for_checking(table):
-    """The sheets that need a look, from the Accounts table. Mostly only a difference from the label can need
-    correcting: when our industry matches the CRM or ZoomInfo label, nothing changes in the CRM.
-      Review              we differ from the label, and our answer is unsure (a reason in "Why review"); and any
-                          segment under decide.CHECK_EVEN_IF_MATCH_BELOW (0.50), even matching the label: the model
-                          thought something else was at least as likely, so the matching label proves nothing
-      Label differences   we differ from the label, and our answer is sure
+    """The sheets that need a look, from the Accounts table. The thresholds already settle each answer, so a person
+    only checks a segment the model itself found unlikely (an Other needs 0.80, so it never is):
+      Review              a segment under decide.REVIEW_IF_DIFFERS_BELOW (0.50) that differs from the label, or under
+                          decide.REVIEW_IF_MATCHES_BELOW (0.30) that matches it (the model leaned Other)
+      Label differences   every other difference from the label
       Non-core            main business No: the company does the segment's work alongside a different main business
-    With no label to compare with (an input file without an industry), Review holds every unsure answer instead."""
+    With no label to compare with (an input file without an industry), Review holds the segments under 0.50."""
     if table.empty:
         return {"Review": table, "Label differences": table, "Non-core": table}
-    unsure = table["Why review"] != ""
+    segment, probability = table["Our industry"] != "Other", table["Probability"]
     if "Match" in table:
         differs = table["Match"] == "Mismatch"
-        unlikely_segment = (table["Our industry"] != "Other") & (table["Probability"] < decide.CHECK_EVEN_IF_MATCH_BELOW)
-        review, label_differences = table[(differs & unsure) | unlikely_segment], table[differs & ~unsure]
+        to_review = segment & ((differs & (probability < decide.REVIEW_IF_DIFFERS_BELOW))
+                               | (~differs & (probability < decide.REVIEW_IF_MATCHES_BELOW)))
+        review, label_differences = table[to_review], table[differs & ~to_review]
     else:
-        review, label_differences = table[unsure], table.iloc[0:0]
+        review, label_differences = table[segment & (probability < decide.REVIEW_IF_DIFFERS_BELOW)], table.iloc[0:0]
     return {"Review": review.copy(), "Label differences": label_differences.copy(),
             "Non-core": table[table["Main business"] == "No"].copy()}
 
@@ -305,17 +306,20 @@ def report_guide(label_name):
              "how much the model backs the label's industry (0-100%)"),
             ("Rationale", "one line: what decided it and the number behind it, main business, the pages naming the "
                           "work (e.g. 'Towing, 92% sure. Main business: no. Pages: /24-hour-towing')"),
-            ("Why review", "why the answer is unsure; blank = sure. Unsure answers that also differ from the label "
-                           "are on the Review sheet"),
+            ("Doubts", "what could be wrong with the answer (a close call, another segment that looks like the main "
+                       "business, a doubtful website, very little website text); blank = none. Shown to explain; "
+                       "which sheet an account goes to depends on its probability"),
         ],
         "The sheets to work through": [
-            ("Review", "we differ from the input file's label AND our answer is unsure (a close call, another "
-                       "segment that looks like the main business, very little website text, a doubtful website). "
-                       "These are the ones to check: pick a verdict"),
-            ("Label differences", "we differ from the label and our answer is sure. Usually the label is wrong for our "
-                                  "purposes (a home builder ZoomInfo calls Light Construction); skim them, above all "
-                                  "the ones we call Other"),
-            ("Accounts that match the label", "not listed anywhere to check: nothing would change in the CRM"),
+            ("Review", f"segments the model itself found unlikely: under {decide.REVIEW_IF_DIFFERS_BELOW:.0%} when "
+                       f"they differ from the input file's label, under {decide.REVIEW_IF_MATCHES_BELOW:.0%} when they "
+                       "match it (the model leaned Other; the threshold kept the segment). The ones to check: pick a "
+                       "verdict"),
+            ("Label differences", "every other difference from the label. Usually the label is wrong for our purposes "
+                                  "(a home builder ZoomInfo calls Light Construction); skim them, above all the ones "
+                                  "we call Other"),
+            ("Accounts that match the label", "not listed anywhere to check (unless seriously unlikely, see Review): "
+                                              "nothing would change in the CRM"),
             ("Non-core", "the company does a segment's work alongside a different main business (an auto shop that "
                          "also tows). Kept to count them over time; nothing to fix"),
         ],
@@ -348,7 +352,7 @@ def every_account(table, stages, input_xlsx=None):
     first = ["account_id", "Account", "Website", *[c for c in table.columns if c.endswith(" industry")
                                                     and c != "Our industry" and not c.startswith("Our ")]]
     result_columns = ["Result", "Probability", "Main business", "Match",
-                      *[c for c in table.columns if c.startswith("Our probability")], "Rationale", "Why review"]
+                      *[c for c in table.columns if c.startswith("Our probability")], "Rationale", "Doubts"]
     stopped = ["Stage reached", "Problem", "Crawl", "Pages crawled", "CRM"]
     ordered = [c for c in first + result_columns + stopped if c in results.columns]
     results["Stage reached"] = results["Stage reached"].where(results["Outcome"] != "classified", "")
@@ -388,15 +392,13 @@ def build(store_path, answers_csv, report_xlsx, label_name="", evidence_log=None
 
     for name, part in to_check.items():
         ws = wb.create_sheet(name)
-        if name == "Label differences":
-            part = part.drop(columns="Why review")  # sure answers: no reasons to show
         if name == "Non-core":  # a list to count, not to check: the answer, how sure, and why
-            part = part.drop(columns=[c for c in part.columns if c in ("Why review", "Main business", "Match")
+            part = part.drop(columns=[c for c in part.columns if c in ("Doubts", "Main business", "Match")
                                       or c.startswith("Our probability")])
-        write_sheet(ws, part, ("Rationale", "Why review", NOTES))
+        write_sheet(ws, part, ("Rationale", "Doubts", NOTES))
         if VERDICT in part:
             add_verdict_columns(ws, part)
-    write_sheet(wb.create_sheet("Accounts"), everyone, ("Rationale", "Why review", "Problem"))
+    write_sheet(wb.create_sheet("Accounts"), everyone, ("Rationale", "Doubts", "Problem"))
 
     everyone.to_csv(report_xlsx.with_name(report_xlsx.stem + "_accounts.csv"), index=False)
     tmp = report_xlsx.with_name("~tmp_" + report_xlsx.name)
