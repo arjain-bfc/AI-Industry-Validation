@@ -17,3 +17,9 @@ old_versions/
 _crawl_jobs/
 __pycache__/
 .ipynb_checkpoints/
+
+# Personal notes (open questions), not part of the repo
+open_questions.txt
+
+# Built from RULES.md by build_rules_doc.py
+*.docx
