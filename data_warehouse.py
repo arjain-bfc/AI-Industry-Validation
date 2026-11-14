@@ -11,17 +11,14 @@ The connection is read only, with your Windows login (no password). It needs the
 (installed with SQL Server tools) and pip install pyodbc.
 """
 from datetime import datetime
-import os
 from pathlib import Path
 
 import pandas as pd
-from dotenv import load_dotenv
 
 FOLDER = Path(__file__).parent
 QUERIES = FOLDER / "queries"
 SNAPSHOTS = FOLDER / "data" / "snapshots"
-load_dotenv(FOLDER / ".env")
-SERVER = os.getenv("DWH_SERVER", "")  # the development data warehouse; in .env, kept out of the repo
+SERVER = "bfcdwdevdb01.bfc.beaconfunding.com"  # the development data warehouse
 DATABASE = "DataWarehouse"
 DRIVER = "ODBC Driver 18 for SQL Server"
 
@@ -30,8 +27,6 @@ def connect():
     """A read-only connection with your Windows login. TrustServerCertificate: the server's certificate is an internal
     one that Windows doesn't know; drop it once IT makes the certificate trusted on this machine."""
     import pyodbc
-    if not SERVER:
-        raise RuntimeError("Set DWH_SERVER in .env (see .env.example).")
     return pyodbc.connect(f"Driver={{{DRIVER}}};Server={SERVER};Database={DATABASE};Trusted_Connection=yes;"
                           "Encrypt=yes;TrustServerCertificate=yes;", timeout=30, readonly=True)
 
