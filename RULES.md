@@ -88,7 +88,7 @@ result             Towing, probability 29%, main business No
 - **The lists are examples, read as "any one of".** Each piece of equipment or work listed for a segment is evidence on its own; a company doesn't need to match the whole list.
 - **The equipment doesn't have to be named.** Mowing lawns needs mowers, even if the site never says "mower".
 - **Non-core work counts.** Work the company does itself counts even when it isn't its main business: an auto shop that tows with its own truck is Towing. The exception is construction contractors (see Light Construction).
-- **When several segments fit,** choose the one whose equipment most of the company's work needs, counting the services it offers, not how often the site repeats them (service-area and location pages can repeat one service many times).
+- **When several segments fit,** judge the company's business as a whole, from its name, what it says it does and the services it offers, and choose the segment whose equipment most of that work needs. Neither the web address nor how often the site repeats something decides it (service-area and location pages can repeat one service many times).
 
 ### Who does the work
 
@@ -147,7 +147,7 @@ Special cases:
 - **Builder or renovator? Weigh the headline with the services and projects.** Mainly renovating or remodeling: Light Construction, even if the headline says builder. Mainly building new homes or buildings: a builder (Other).
 - **A headline that doesn't say what it builds:** judge by the services listed. Mostly light construction work counts, even with some new homes or commercial buildings among them.
 - **Interior-only work** (kitchens, baths, cabinets, flooring, painting) needs none of this equipment, so it isn't Light Construction.
-- **Where Light Construction and Septic overlap, judge by the equipment.** Pumping, jetting and cleaning needs septic trucks: Septic. Digging (installing septic systems, site utilities, exposing lines) needs excavators: Light Construction. A vacuum truck, hydrovac included, is judged by its use: digging with it (hydro excavation, potholing) is Light Construction; pumping and hauling liquids, sludge or waste with it (cleaning tanks and pipes, spill clean-up) is Septic. A company doing several of these goes to the equipment most of its work needs. This rule is stated once on purpose: repeating it across the definitions made it override companies whose whole business is septic systems.
+- **Where Light Construction and Septic overlap, judge by the equipment.** Pumping, jetting and cleaning needs septic trucks: Septic. Digging (site utilities, exposing lines) needs excavators: Light Construction. A vacuum truck, hydrovac included, is judged by its use: digging with it (hydro excavation, potholing) is Light Construction; pumping and hauling liquids, sludge or waste with it (cleaning tanks and pipes, spill clean-up) is Septic. A company doing several of these goes to the equipment most of its work needs. This rule is stated once on purpose: repeating it across the definitions made it override companies whose whole business is septic systems.
 
 ### Septic
 
@@ -155,7 +155,7 @@ Special cases:
 |---|---|
 | **Equipment** | septic pumper, vacuum or jetter trucks, vacuum tank trailers, portable restroom trailers |
 | **Work** | septic tank and cesspool pumping; grease trap pumping; portable toilet service; storm drain, catch basin and dry well cleaning; sewer and drain jetting; industrial vacuum work (liquid waste hauling, hydro blasting, tank cleaning) |
-| **Who counts** | septic, portable toilet and drain companies; portable toilet, restroom trailer and holding tank rental companies, even if they send tank pumping elsewhere; aerobic system maintenance; industrial vacuum companies with their own trucks, even if they also offer hydro excavation; plumbers doing this work |
+| **Who counts** | septic, portable toilet and drain companies, including septic system companies that pump and service systems as well as install them; portable toilet, restroom trailer and holding tank rental companies, even if they send tank pumping elsewhere; aerobic system maintenance; industrial vacuum companies with their own trucks, even if they also offer hydro excavation; plumbers doing this work |
 | **Main business: yes** | a septic pumper, aerobic maintenance company, portable toilet or restroom trailer company, drain and sewer cleaning company, industrial vacuum company |
 | **Main business: no** | a plumber that also jets drains; a septic inspector that doesn't pump |
 
@@ -166,7 +166,7 @@ Special cases:
 | **Equipment** | tow trucks, wreckers, rollbacks and flatbeds, rotators, wheel-lift self-loaders and repo trucks, car carriers |
 | **Work** | towing, roadside assistance with a tow truck, accident recovery and winch-outs, vehicle transport on a rollback or car carrier, repossession, impound |
 | **Not towing** | roadside help with no tow truck (jump starts, tire changes, lockouts, fuel delivery) |
-| **Who counts** | towing, auto transport, car hauling and repossession companies; repair shops, body shops, dealers and transporters of any vehicle that tow or haul vehicles |
+| **Who counts** | towing, auto transport, car hauling and repossession companies; repair shops that tow, and body shops, dealers and transporters that tow or haul vehicles themselves (any vehicle) |
 | **Main business: yes** | a tow company, wrecker service, roadside recovery company, vehicle transporter or car hauler, repossession company |
 | **Main business: no** | an auto repair, tire or body shop that also tows, unless towing is in its name or main headline; a truck shop that repairs or sells tow equipment |
 

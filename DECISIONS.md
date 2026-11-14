@@ -2,6 +2,22 @@
 
 The code says what happens; this file says why. Newest first.
 
+## 2026-11-14
+- **Septic companies that pump and service systems as well as install them are Septic** (open question 1, decided).
+  Added to who counts as Septic. Installation is no longer named as Light Construction digging work; the equipment
+  lists are unchanged. Tested: a septic-and-excavation company Septic 0.77-0.80 (was LC 0.53, now ruled Septic); a
+  septic company with a large backhoe side moved from LC 0.75 to 0.68 but stays LC, a known mixed case. Dropped:
+  listing a septic company's backhoes as septic equipment (fixed that account at Septic 0.82 but blurs the equipment
+  lists), using the main-business answer as a tie-breaker (would wrongly move two septic companies to LC), and
+  "choose the main business when several fit" (a coin flip on that account).
+- **"When several fit" judges the business as a whole**: its name, what it says it does and the services it offers;
+  the web address and repetition don't decide it. Swing set, old and new wording, 2 asks each: nothing moved the
+  wrong way; a construction company firmed up (LC 0.56-0.70 -> 0.87-0.93).
+- **Towing includes "repair shops that tow"** (the qualifier was at the end of a long list and got lost). Four repair
+  shops that don't tow: Other 0.79-0.90 -> 0.91-0.95. One that refers towing to another company: 0.65 -> 0.70-0.75,
+  still under the 0.80 bar. Repair shops that do tow not yet re-tested.
+- Questions version 8cc2a81f -> 2f08f06e. Full check set not yet run on it.
+
 ## 2026-11-13
 - **Code regrouped by job, nothing else changed.** Pieces had collected in the wrong files (the crawl store and the
   account reading inside crawl.py, the answers file and evidence log inside classify.py, report texts inside

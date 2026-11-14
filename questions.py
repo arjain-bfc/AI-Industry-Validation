@@ -108,8 +108,8 @@ DEFINITIONS = {
             "(kitchens, bathrooms, cabinets, flooring, painting) needs none of this equipment, so it is not light "
             "construction either. Where this overlaps with septic work, judge by the equipment: pumping, jetting and "
             "cleaning septic systems, sewers and drains needs septic trucks and is septic; digging with excavators, "
-            "backhoes or a hydrovac truck (installing septic systems and drain fields, site utilities, new mains, "
-            "exposing buried lines) is light construction. A vacuum truck, hydrovac included, is judged by what it is "
+            "backhoes or a hydrovac truck (site utilities, new mains, exposing buried lines) is light construction. "
+            "A vacuum truck, hydrovac included, is judged by what it is "
             "used for: digging with it (hydro excavation, potholing, exposing buried lines) is light construction; "
             "pumping and hauling liquids, sludge or waste with it (cleaning tanks and pipes, spill clean-up) is "
             "septic. Rebuilding homes, or building ADUs or additions as part of a home-building business, is still "
@@ -136,7 +136,8 @@ DEFINITIONS = {
             "vacuum and cleaning services (pumping and hauling liquid waste, hydro jetting and blasting, tank and pipe "
             "cleaning)"),
         "includes": (
-            "septic, portable toilet and drain companies, including portable toilet, restroom trailer and holding tank "
+            "septic, portable toilet and drain companies, including septic system companies that pump and service "
+            "systems as well as install them, portable toilet, restroom trailer and holding tank "
             "rental companies (they own, deliver and service their units, even if they send septic tank pumping to "
             "another company), septic pumping and aerobic system maintenance providers, industrial cleaning and vacuum "
             "service companies that run their own vacuum trucks, even if they also offer hydro excavation, and "
@@ -157,9 +158,9 @@ DEFINITIONS = {
             "or impound. Roadside help with no tow truck (jump starts, tire changes, lockouts, fuel delivery from a "
             "service van) is not towing"),
         "includes": (
-            "towing companies, auto transport and car hauling companies, repossession companies, and repair shops, "
-            "body shops, dealers and transporters of any vehicles (cars, trucks, motorcycles, ATVs, RVs, boats) that "
-            "tow or haul vehicles"),
+            "towing companies, auto transport and car hauling companies, repossession companies, and repair shops "
+            "that tow, along with body shops, dealers and transporters that tow or haul vehicles themselves (cars, "
+            "trucks, motorcycles, ATVs, RVs, boats)"),
         "excludes": (
             "A repair shop, body shop or dealer of any vehicles counts when it presents towing as a service of its own "
             "(its own towing page or \"24 hour towing\" among its services) or takes tow requests on its own number "
@@ -321,9 +322,10 @@ QUESTIONS = {
             "civil or heavy contractors count as Light Construction only when light construction is their main work, "
             "not because they also do some renovation, concrete or site work. Rebuilding homes, or building ADUs or "
             "additions as part of a home-building business, is still home building. Any other business that does light "
-            "construction work itself counts, even as non-core work. If several fit, choose the industry whose "
-            "equipment most of the company's work needs, counting the services it offers, not how often the site "
-            "repeats them. Choose None only when there is no evidence of any listed equipment or work, or the site "
+            "construction work itself counts, even as non-core work. If several industries fit, judge the company's "
+            "business as a whole, from its name, what it says it does and the services it offers, and choose the "
+            "industry whose equipment most of that work needs. Neither the web address nor how often the site "
+            "repeats something decides it. Choose None only when there is no evidence of any listed equipment or work, or the site "
             "clearly says third parties do all of it; when it is only unclear who does the work, or others do just "
             "part of it, choose the industry. "
             + WHO_DOES_THE_WORK
