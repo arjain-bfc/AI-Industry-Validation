@@ -81,8 +81,8 @@ FILE_ENDING = re.compile(  # /about-us.html and /about-us are the same page
 # To add a segment, add it here, in SEGMENT_PHRASES and in questions.py.
 SEGMENT_WORDS = {
     "decorated_apparel": [r"embroider", r"screen-?print", "apparel", "shirt", "decorat",
-                          r"(?<![a-z])signs?(?!in|up|ature)", "signage", "vinyl", "dtf", "dtg", "decal", "label", "patch",
-                          "uniform"],
+                          r"(?<![a-z])signs?(?!in|up|ature)", "signage", "vinyl", "dtf", "dtg", "decal", "label",
+                          "patch", "uniform"],
     "landscape_hardscape": ["landscap", "lawn", "mow", r"(?<![a-z])trees?", "stump", "hardscap", "paver", "snow"],
     "light_construction": ["roof", "remodel", "renovat", "construct", "excavat", "grading", "concrete",
                            r"pole-?(barn|building)", "steel"],
@@ -94,28 +94,30 @@ SEGMENT_WORD = re.compile("|".join(w for words in SEGMENT_WORDS.values() for w i
 # words are close in meaning to one of these (a loose match: "restroom trailer", "skid steer work", "labels").
 SEGMENT_PHRASES = {
     "decorated_apparel": [
-        "embroidery", "monogramming", "screen printing", "custom t-shirts", "custom apparel", "hats and caps", "uniforms",
-        "team wear", "promotional products", "heat transfers", "dtf transfers", "direct to garment printing",
-        "sublimation", "vinyl decals", "stickers", "custom labels", "woven labels", "patches", "signs", "banners",
-        "vehicle wraps", "vehicle graphics", "engraving", "print shop", "personalized gifts"],
+        "embroidery", "monogramming", "screen printing", "custom t-shirts", "custom apparel", "hats and caps",
+        "uniforms", "team wear", "promotional products", "heat transfers", "dtf transfers",
+        "direct to garment printing", "sublimation", "vinyl decals", "stickers", "custom labels", "woven labels",
+        "patches", "signs", "banners", "vehicle wraps", "vehicle graphics", "engraving", "print shop",
+        "personalized gifts"],
     "landscape_hardscape": [
         "landscaping", "landscape design and installation", "lawn care", "mowing", "lawn maintenance", "fertilization",
-        "aeration", "tree service", "tree removal", "tree trimming", "stump grinding", "brush chipping", "land clearing",
-        "storm cleanup", "mulch", "sod installation", "irrigation", "sprinkler systems", "yard drainage",
-        "hardscaping", "pavers", "patios", "retaining walls", "snow removal", "snow plowing"],
+        "aeration", "tree service", "tree removal", "tree trimming", "stump grinding", "brush chipping",
+        "land clearing", "storm cleanup", "mulch", "sod installation", "irrigation", "sprinkler systems",
+        "yard drainage", "hardscaping", "pavers", "patios", "retaining walls", "snow removal", "snow plowing"],
     "light_construction": [
         "excavation", "grading", "site work", "site preparation", "skid steer work", "bobcat services",
         "mini excavator", "backhoe services", "trenching", "hydro excavation", "demolition", "concrete", "foundations",
         "flatwork", "driveways", "roofing", "siding", "home remodeling", "renovations", "home additions", "decks",
         "fencing", "pole barns", "steel buildings", "garages", "utility installation"],
     "septic": [
-        "septic tank pumping", "septic service", "septic installation", "septic inspection", "drain field", "drain cleaning",
-        "sewer cleaning", "hydro jetting", "sewer camera inspection", "grease trap cleaning", "vacuum truck services",
-        "portable toilets", "porta potty rental", "restroom trailers", "portable sinks", "hand wash stations"],
+        "septic tank pumping", "septic service", "septic installation", "septic inspection", "drain field",
+        "drain cleaning", "sewer cleaning", "hydro jetting", "sewer camera inspection", "grease trap cleaning",
+        "vacuum truck services", "portable toilets", "porta potty rental", "restroom trailers", "portable sinks",
+        "hand wash stations"],
     "towing": [
-        "towing", "tow truck service", "roadside assistance", "wrecker service", "heavy duty towing", "vehicle recovery",
-        "accident recovery", "winching", "flatbed towing", "car hauling", "vehicle transport", "lockouts",
-        "jump starts", "tire changes", "fuel delivery", "impound", "junk car removal"],
+        "towing", "tow truck service", "roadside assistance", "wrecker service", "heavy duty towing",
+        "vehicle recovery", "accident recovery", "winching", "flatbed towing", "car hauling", "vehicle transport",
+        "lockouts", "jump starts", "tire changes", "fuel delivery", "impound", "junk car removal"],
 }
 SEGMENT_MATCH = 0.55  # how close in meaning (0-1) a link must be to one of SEGMENT_PHRASES to count
 

@@ -4,8 +4,9 @@
 
 Both models take the same request body; only the endpoint and how the key is sent differ. Keys are environment
 variables (DECISION1_API_KEY, JEV_API_KEY), and so is Decision-1's endpoint (DECISION1_URL, Beacon's private Azure
-address), all loaded from the .env file next to this one (private: never share or commit it). A variable already set in the environment wins over .env, so a server can supply its own. Parallel calls are
-paced to stay under each endpoint's tokens-per-minute quota.
+address), all loaded from the .env file next to this one (private: never share or commit it). A variable already set
+in the environment wins over .env, so a server can supply its own. Parallel calls are paced to stay under each
+endpoint's tokens-per-minute quota.
 """
 import os
 import random
@@ -18,6 +19,18 @@ import requests
 from dotenv import load_dotenv
 
 from questions import QUESTIONS
+
+# --- What the model reads ----------------------------------------------------------------------------------------
+TOKEN_BUDGET = 24_000      # most tokens one call may use (75% of the model's ~32k)
+
+
+RESERVED_TOKENS = 7_200    # the questions and company details
+
+
+TOKENS_PER_WORD = 1.5      # website text (measured 1.24 on average, up to 1.45)
+
+
+TOKENS_PER_PAGE = 90       # each page's path, title and JSON
 
 load_dotenv(Path(__file__).parent / ".env")  # pip install python-dotenv
 

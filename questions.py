@@ -7,31 +7,46 @@
   SITE_MATCH         is this website the company's?
   QUESTIONS          all of the above, as sent with every call
 
-Each segment is defined once. Both questions are built from that definition, so they can't drift apart:
+QUESTIONS holds 7 questions, all answered in one call (12 numbers back):
+  site_match      yes/no ("noul")                1 probability: is this website the company's?
+  industry        one choice out of 6 ("choice") 6 probabilities adding up to 1: the 5 segments and Other
+  main_<segment>  yes/no ("noul"), x5            5 probabilities, one per segment, each on its own (they don't add
+                                                 up): is this segment's work the company's MAIN business?
+The industry question and the five main-business questions are separate questions. decide.py turns the 12 numbers
+into the result (decide.what_the_model_answers() lays it out in tables).
+
+Each segment is defined once. Both kinds of question are built from that definition, so they can't drift apart:
   industry        which segment's equipment the company uses for its own work (Other = none)
   main_<segment>  is that segment's work the company's MAIN business
 Parts of a definition: equipment and includes (industry question only), work and excludes (both questions),
-main_true and main_false (examples for the main-business question: is this the company's MAIN work, or a side line).
+main_true and main_false (examples for the main-business question: is this the company's MAIN work, or non-core).
 
 After editing: restart the notebook kernel and start a new answers file. classify.RESERVED_TOKENS assumes the
 questions take about 7,000 tokens.
 """
+import hashlib
+import json
+
+
 DEFINITIONS = {
     "decorated_apparel": {
         "equipment": (
             "Decorated apparel equipment: embroidery machines, screen printing presses, direct-to-garment (DTG) or "
-            "direct-to-film (DTF) printers, sign-making equipment (sign, banner and vehicle graphics printers, plotters, "
-            "cutters), or other decorating equipment such as heat presses, vinyl cutters, sublimation printers, label "
-            "printers and label looms, laser engravers, UV and wide-format printers, and pad printers"),
+            "direct-to-film (DTF) printers, sign-making equipment (sign, banner and vehicle graphics printers, "
+            "plotters, cutters), or other decorating equipment such as heat presses, vinyl cutters, sublimation "
+            "printers, label printers and label looms, laser engravers, UV and wide-format printers, and pad printers, "
+            "and the equipment that supports the decorating work, such as drying, screen-making and finishing "
+            "equipment"),
         "work": (
-            "decorating, printing, embroidering, engraving, weaving or personalizing items such as shirts, hats, uniforms, team "
-            "wear, bags, towels and home linens, promotional products, signs, custom or personalized labels, name tags, "
-            "patches, transfers, decals, or manufactured parts"),
+            "putting logos, designs or text onto items by printing, embroidering, engraving, weaving or "
+            "personalizing them: shirts, hats, uniforms, team wear, bags, towels and home linens, promotional "
+            "products, signs, custom or personalized labels, name tags, patches, transfers, decals, and manufactured "
+            "parts (marking or decorating parts made by others)"),
         "includes": (
-            "embroidery and screen printing shops, print and sign shops, custom label and patch makers, personalization "
-            "and monogram shops, promotional product and uniform companies that decorate in-house, online stores and "
-            "brands that make embroidered, printed or personalized products themselves, and any other business running "
-            "this equipment"),
+            "embroidery and screen printing shops, print and sign shops, custom label and patch makers, "
+            "personalization and monogram shops, promotional product and uniform companies that decorate in-house, "
+            "online stores and brands that make embroidered, printed or personalized products themselves, and any "
+            "other business running this equipment"),
         "main_true": (
             "a label, embroidery, screen printing, DTG/DTF printing or sign company, or a store whose main products "
             "are items it embroiders, prints or weaves itself"),
@@ -42,15 +57,14 @@ DEFINITIONS = {
     "landscape_hardscape": {
         "equipment": (
             "Landscape and hardscape equipment: commercial mowers, chippers, stump grinders, compact tractors, "
-            "aerators, or landscape trucks"),
+            "aerators, bucket trucks, or landscape trucks"),
         "work": (
-            "lawn care and commercial mowing, tree trimming and removal, stump grinding, brush chipping, planting, mulch "
-            "and sod, snow plowing, installing pavers, patios and retaining walls, installing irrigation and yard "
-            "drainage, or skid steer, mini excavator, grading or hauling work for yards"),
+            "lawn care and commercial mowing, tree trimming and removal, stump grinding, brush chipping, planting, "
+            "mulch and sod, snow plowing, installing pavers, patios and retaining walls, installing irrigation and "
+            "yard drainage, or skid steer, mini excavator, grading or hauling work for yards"),
         "includes": (
-            "landscapers, lawn care and tree services, arborists that care for trees, irrigation contractors, "
-            "property maintenance companies, "
-            "and any other business doing this work"),
+            "landscapers, lawn care and tree services, arborists that care for trees, irrigation contractors, property "
+            "maintenance companies, and any other business doing this work"),
         "main_true": (
             "a lawn care, landscaping, hardscape or snow plowing company, a tree service, or an arborist that cares "
             "for trees"),
@@ -67,41 +81,45 @@ DEFINITIONS = {
             "smaller residential and light commercial jobs such as renovations, additions and room add-ons, patios, "
             "decks, driveways and concrete flatwork, residential and small commercial concrete foundations, footings "
             "and slabs, regrading and drainage, site preparation, excavation, grading and land clearing, hydro or "
-            "vacuum excavation (potholing, daylighting and slot trenching to expose buried lines), "
-            "demolition and tear-outs, foundation repair, trenching, installing septic systems and drain fields, "
-            "residential or commercial roofing and siding, "
-            "fencing, or small buildings such as garages, accessory dwelling units (ADUs), pole barns, sheds and steel or "
-            "post-frame outbuildings"),
+            "vacuum excavation (potholing, daylighting and slot trenching to expose buried lines), demolition and "
+            "tear-outs, foundation repair, trenching, residential or "
+            "commercial roofing and siding, fencing, or small buildings such as garages, accessory dwelling units "
+            "(ADUs), pole barns, sheds and steel or post-frame outbuildings"),
         "includes": (
             "renovation, remodeling and home improvement contractors, residential and commercial roofing and siding "
-            "contractors, pole barn and steel building erectors, excavation, grading and site-work contractors, septic "
-            "system installers, "
-            "residential and small commercial concrete contractors, "
-            "residential general contractors that renovate homes with their own crews, and any other business whose "
-            "main work is this kind of work"),
+            "contractors, pole barn and steel building erectors, excavation, grading and site-work contractors, "
+            "residential and small commercial concrete contractors, residential general contractors "
+            "that renovate homes with their own crews, and any other business doing this kind of work itself"),
         "excludes": (
-            "Light construction must be the company's main work, judged by what it mainly presents itself as doing: "
-            "its headline, its main services and the projects it shows. A company that mainly presents renovation, "
+            "For construction contractors (home builders, developers, general contractors for commercial, industrial "
+            "or multifamily buildings, structural or commercial concrete contractors, and civil or heavy contractors), "
+            "light construction must be their main work, judged by what they mainly present themselves as doing: its "
+            "headline, its main services and the projects it shows. A company that mainly presents renovation, "
             "remodeling, roofing, site work or other work above counts, even if it also builds some new homes or does "
-            "some commercial work. When a company offers both building and remodeling, its name and headline decide: "
-            "one that leads with renovating or remodeling is light construction; one that leads with building, or "
-            "presents itself as a building contractor that builds and remodels, is a builder. A construction company or "
-            "general contractor whose headline does not say what it builds is judged by the services it lists: when "
-            "most of them are work above, it counts, even if new homes or commercial buildings are among them. Not light "
-            "construction: companies that mainly build new homes or housing "
-            "developments (building new homes is heavy construction), developers, real estate companies, general "
-            "contractors for large commercial buildings, heavy civil construction (highways, bridges, large utility "
-            "projects, mining) and structural concrete for high-rises, garages or bridges. Interior-only work "
+            "some commercial work. When a company offers both building and remodeling, weigh its headline together "
+            "with the services it lists and the projects it shows: one whose work is mainly renovating or remodeling "
+            "is light construction, even if its headline says builder; one whose work is mainly building new homes or "
+            "buildings is a builder. A construction company or general contractor whose headline does not say what it "
+            "builds is judged by the services it lists: when most of them are work above, it counts, even if new homes "
+            "or commercial buildings are among them. Not light construction: companies that mainly build new homes or "
+            "housing developments (building new homes is heavy construction), developers, real estate companies, "
+            "general contractors for large commercial buildings, heavy civil construction (highways, bridges, large "
+            "utility projects, mining) and structural concrete for high-rises, garages or bridges. Interior-only work "
             "(kitchens, bathrooms, cabinets, flooring, painting) needs none of this equipment, so it is not light "
             "construction either. Where this overlaps with septic work, judge by the equipment: pumping, jetting and "
             "cleaning septic systems, sewers and drains needs septic trucks and is septic; digging with excavators, "
             "backhoes or a hydrovac truck (installing septic systems and drain fields, site utilities, new mains, "
-            "exposing buried lines) is light construction."),
+            "exposing buried lines) is light construction. A vacuum truck, hydrovac included, is judged by what it is "
+            "used for: digging with it (hydro excavation, potholing, exposing buried lines) is light construction; "
+            "pumping and hauling liquids, sludge or waste with it (cleaning tanks and pipes, spill clean-up) is "
+            "septic. Rebuilding homes, or building ADUs or additions as part of a home-building business, is still "
+            "home building. A business outside construction that does this kind of work itself, with its own "
+            "equipment, counts even as non-core work."),
         "main_true": (
             "a roofing, siding, pole building, steel building, renovation or remodeling contractor that builds "
             "additions or does exterior, structural or site work; a residential general contractor or design-build "
-            "firm that renovates homes with its own crews; an excavation, grading, site work, site utility or septic "
-            "system installation contractor; a residential concrete or foundation contractor pouring or installing "
+            "firm that renovates homes with its own crews; an excavation, grading, site work or site utility "
+            "contractor; a residential concrete or foundation contractor pouring or installing "
             "foundations, slabs and driveways"),
         "main_false": (
             "a company that mainly builds new homes, even if it also remodels; a general contractor for large "
@@ -121,33 +139,33 @@ DEFINITIONS = {
             "septic, portable toilet and drain companies, including portable toilet, restroom trailer and holding tank "
             "rental companies (they own, deliver and service their units, even if they send septic tank pumping to "
             "another company), septic pumping and aerobic system maintenance providers, industrial cleaning and vacuum "
-            "service companies that run their own vacuum trucks, and plumbers doing this work"),
+            "service companies that run their own vacuum trucks, even if they also offer hydro excavation, and "
+            "plumbers doing this work"),
         "main_true": (
             "a septic pumper, an aerobic system maintenance company, a portable toilet or restroom trailer rental "
             "company, a drain cleaning and sewer line company, or an industrial vacuum and hydro blasting company"),
         "main_false": (
-            "a plumber whose main work is plumbing and that also jets drains; a septic inspector that does not pump; "
-            "a septic installer that does not pump (installing is digging work, light construction)"),
+            "a plumber whose main work is plumbing and that also jets drains; a septic inspector that does not pump"),
     },
     "towing": {
         "equipment": (
-            "Towing equipment: tow trucks, wreckers, rollbacks or flatbeds, rotators, wheel-lift self-loaders and "
-            "repo trucks, or car carriers (car hauler trucks and car hauler trailers)"),
+            "Towing equipment: tow trucks, wreckers, rollbacks or flatbeds, rotators, wheel-lift self-loaders and repo "
+            "trucks, or car carriers (car hauler trucks and car hauler trailers)"),
         "work": (
             "towing, roadside assistance done with a tow truck or wrecker, accident recovery and winch-outs, vehicle "
             "transport on a rollback, flatbed or car carrier (auto transport and car hauling), vehicle repossession, "
-            "or impound. Roadside help with no tow truck (jump starts, tire "
-            "changes, lockouts, fuel delivery from a service van) is not towing"),
+            "or impound. Roadside help with no tow truck (jump starts, tire changes, lockouts, fuel delivery from a "
+            "service van) is not towing"),
         "includes": (
             "towing companies, auto transport and car hauling companies, repossession companies, and repair shops, "
             "body shops, dealers and transporters of any vehicles (cars, trucks, motorcycles, ATVs, RVs, boats) that "
             "tow or haul vehicles"),
         "excludes": (
-            "A repair shop, body shop or dealer of any vehicles counts when it presents towing as a service of its own (its own towing page "
-            "or \"24 hour towing\" among its services) or takes tow requests on its own number (\"Need a tow? Call "
-            "us\"). One that only mentions towing in passing as "
-            "help it gives customers (towing assistance, or arranging, referring or helping pay for a tow), or says a "
-            "tow company does its towing, does not."),
+            "A repair shop, body shop or dealer of any vehicles counts when it presents towing as a service of its own "
+            "(its own towing page or \"24 hour towing\" among its services) or takes tow requests on its own number "
+            "(\"Need a tow? Call us\"). One that only mentions towing in passing as help it gives customers (towing "
+            "assistance, or arranging, referring or helping pay for a tow), or says a tow company does its towing, "
+            "does not."),
         "main_true": (
             "a tow company, wrecker service, roadside recovery company, vehicle transporter or car hauler, or a "
             "repossession company"),
@@ -156,17 +174,21 @@ DEFINITIONS = {
             "main headline; a truck shop that repairs or sells tow truck equipment to towing companies"),
     },
 }
+
+
 SEGMENTS = list(DEFINITIONS)
+
 
 OTHER = (
     "None of the listed equipment: no evidence the company uses, or does work that requires, any of the equipment "
     "above, however close its industry looks. Also Other: companies whose site clearly says all of the listed work is "
     "done by third parties rather than by the company itself (they arrange, refer, schedule or pay for it, including "
-    "brokers and booking networks that have local providers do the work), companies that only design, "
-    "plan, inspect or supply materials for the work, companies that only sell or repair the equipment "
-    "(dealers and repair shops), home builders that mainly present themselves as building new "
-    "homes (even with some remodeling), developers, and real estate or property companies, even when they build or renovate "
-    "homes (a contractor that renovates homes for owners or investors is not a real estate company)")
+    "brokers and booking networks that have local providers do the work), companies that only design, plan, inspect or "
+    "supply materials for the work, companies that only sell or repair the equipment (dealers and repair shops), home "
+    "builders that mainly present themselves as building new homes (even with some remodeling), developers, and real "
+    "estate or property companies, even when they build or renovate homes (a contractor that renovates homes for "
+    "owners or investors is not a real estate company)")
+
 
 # Who does the work. Only a company that does the work itself buys the equipment, so work it hands to another company
 # doesn't count. Losing a real business costs more than a wasted call, so when the site doesn't say who does the
@@ -198,18 +220,25 @@ WHO_DOES_THE_WORK = (
     "(6) Assuming the company does the work only settles who does it: it never makes a company count that the "
     "industry descriptions leave out.")
 
+
 # Main business: kept short. The who-does-the-work rule is one sentence here (the full block's "benefit of the
-# doubt" pushed side lines up), and each segment has its own true/false examples (shared ones leaked across segments).
+# doubt" pushed non-core work up), and each segment has its own true/false examples (shared ones leaked across
+# segments).
 MAIN_WHO = (
     "Only work the company does itself, with its own people and equipment, can be its main business; work it has "
     "another company do (arranges, refers, subcontracts), designs, inspects or supplies materials for is not, "
     "and a broker, marketplace or booking network that has local providers do the work does none of it itself. "
     "A company that designs or supplies and also does the work itself is judged by that work.")
+
+
 MAIN_DECIDE = (
-    "Decide from what the company mainly is: its name, its headline and the services or products it leads with on "
-    "its home page; when there is no clear headline, the kind of services and projects it shows. Do not judge by how "
-    "many pages or words are about this work: the pages shown were picked because they mention work like this, so "
-    "they over-represent it. Rate this statement on its own, whatever industry was chosen above.")
+    "Decide from what the company mainly does, weighing its name and headline together with the services it lists, "
+    "the projects it shows and the other details across the site: neither the headline alone nor any one page "
+    "decides. Do not judge by how many pages or words are about this work: the pages shown were picked because they "
+    "mention work like this, so they over-represent it. Rate this statement on its own, whatever industry was chosen "
+    "above.")
+
+
 def main_examples(d):
     """The main-business examples: the segment's own true and false examples, then what is always false."""
     true, false = d["main_true"], d["main_false"]
@@ -219,8 +248,8 @@ def main_examples(d):
             f"also does this work itself, for example {false}. Also false, rated near 0, when the company does not "
             "do this work with its own equipment: it books, brokers, arranges or refers the work to other companies "
             "(a booking network or broker whose local providers or operators do the jobs), only sells, rents out or "
-            "repairs the equipment, or only designs, plans or inspects the work (a design-build company that also builds "
-            "or renovates with its own crews does the work); and when its main business is a "
+            "repairs the equipment, or only designs, plans or inspects the work (a design-build company that also "
+            "builds or renovates with its own crews does the work); and when its main business is a "
             "different trade, or the site shows no sign of this work.")
 
 
@@ -242,49 +271,61 @@ def main_statement(segment, d):
 
 INDUSTRIES = {**{segment: criterion(d) for segment, d in DEFINITIONS.items()}, "other": OTHER}
 
-# Is this website the company's? Judged by business name, not address (CRM addresses are often billing or old).
-# decide.WRONG_SITE_BELOW turns it into a yes/no.
-# Is this website the company's? Judged by business name, not address (CRM addresses are often billing or old);
-# decide.WRONG_SITE_BELOW turns the answer into yes or no. website.domains_reached is added by classify.build_state
-# when the crawl was sent on to other web addresses (a company that moved domain, or a domain now used by someone
-# else). Tested  on 28 known wrong websites and 50 hard real ones: same results as the older wording. The
-# order matters: the name check comes first and the "rate it near 1 even if..." cases after; a version that put
-# those cases first let more wrong websites through.
+
+# Is this website the company's? Judged by the business name the site shows, not by address (CRM addresses are often
+# billing or old addresses); decide.WRONG_SITE_THRESHOLD turns the answer into yes or no. website.domains_reached is
+# added by classify.build_state when the crawl was sent on to other web addresses (a company that moved domain,
+# or a domain now used by someone else). The order matters: the name check comes first and the "rate it near 1
+# even if..." cases after; a version that put those cases first let more wrong websites through.
 SITE_MATCH = (
     "This website is the company's own website: the company in the CRM record runs it. Decide by the business name "
     "first: compare the CRM company name (and company.doing_business_as, its DBA, when given) with the business name "
-    "the site shows in its title, headline and logo text. If website.domains_reached is given, the site sent us on to"
-    " other web addresses than website.url: decide whether those still belong to the same company. True: the site "
-    "names the same business, even under a trade name, a DBA, a shortened name, initials, a possessive or plural "
-    "form, or with an owner's name added (\"... by Doug Inc.\"); or the site shows no name but nothing points to "
-    "another business. When the site's business name is the CRM name, rate it near 1 even if its address, city, state"
-    " or phone number differ from the CRM record: CRM addresses are often billing, owner or old addresses. The same "
-    "holds when the web address doesn't contain the name (springfieldautoparts.com for \"Smith's Auto Salvage\") and "
-    "when some pages come from a service the company uses on its own site (a parts search, a booking or payment page,"
-    " a website builder): a site whose title or headline is the company's name is its site. A company that names a "
-    "related or partner company (for after-hours service, or a family company it hands some work to) is still on its "
-    "own site. False: the site is clearly a different business with a different name, such as a national chain or "
-    "platform page (an auto parts store, a truck rental company, a directory or listing site) or an unrelated company"
-    " now using the web address; or there is no real business site: a parked, for-sale, placeholder, under-"
-    "construction or empty directory page, or a default \"Hello world\" page with nothing else. Do not judge which "
-    "industry the company is in, only whether this is its website.")
+    "the site shows in its title, headline and logo text. If website.domains_reached is given, the site sent us on to "
+    "other web addresses than website.url: decide whether those still belong to the same company. True: the site names "
+    "the same business, even under a trade name, a DBA, a shortened name, initials, a possessive or plural form, or "
+    "with an owner's name added (\"... by Doug Inc.\"); or the site shows no name but nothing points to another "
+    "business. When the business name the site itself shows (in its title, headline, logo text or page text, not only "
+    "in its web address) is the CRM name and the site shows what the business does, rate it near 1 even if its "
+    "address, city, state or phone number differ from the CRM record: CRM addresses are often billing, owner or old "
+    "addresses. The same holds when the web address doesn't contain the name (springfieldautoparts.com for \"Smith's "
+    "Auto Salvage\") and when some pages come from a service the company uses on its own site (a parts search, a "
+    "booking or payment page, a website builder): a site whose title or headline is the company's name is its site. "
+    "The company's own Facebook or Instagram business page counts as its website too, when the page is this business's "
+    "(its name, and an intro, category, bio or posts about its business). A company that names a related or partner "
+    "company (for after-hours service, or a family company it hands some work to) is still on its own site. False: the "
+    "site is clearly a different business with a different name, such as a national chain or platform page (an auto "
+    "parts store, a truck rental company, a directory, review, marketplace or lead-generation listing) or an unrelated "
+    "company now using the web address; a social media page of another business, or a personal profile; or there is no "
+    "real business site: a parked, for-sale, placeholder, under-construction or empty directory page, or a default "
+    "\"Hello world\" page with nothing else, even when it shows the company's name: a page that says nothing about "
+    "what the business does is not a business site. Do not judge which industry the company is in, only whether this "
+    "is its website.")
+
 
 QUESTIONS = {
     "site_match": {"type": "noul", "instructions": SITE_MATCH},
     "industry": {
         "type": "choice",
         "instructions": (
-            "An equipment lender finances the equipment listed under each industry. Choose the industry whose equipment "
-            "this company uses or would buy, based on evidence in its name and website: work it offers, projects it "
-            "shows, or equipment it mentions. The equipment does not have to be named if the work requires it. Only "
-            "work the company does itself counts: work the site clearly says it arranges or that a third party does "
-            "for it is not evidence, because the company would not buy the equipment. When it is unclear whether the "
-            "company does the work itself, count it, unless the site says a third party does that specific work. Work the company does itself counts even if it is a side "
-            "line or the company is in a different industry, except Light Construction, which must be the company's "
-            "main work. If several fit, choose the industry whose equipment most of the company's work needs. "
-            "Choose None only when there is "
-            "no evidence of any listed equipment or work, or the site clearly says third parties do all of it; "
-            "when it is only unclear who does the work, or others do just part of it, choose the industry. "
+            "An equipment lender finances the equipment listed under each industry. The equipment and work listed for "
+            "each industry are examples: any one of them is evidence for that industry; a company does not need "
+            "to match the whole list. Choose the industry whose "
+            "equipment this company uses or would buy, based on evidence in its name and website: work it offers, "
+            "projects it shows, or equipment it mentions. The equipment does not have to be named if the work requires "
+            "it. Only work the company does itself counts: work the site clearly says it arranges or that a third "
+            "party does for it is not evidence, because the company would not buy the equipment. When it is unclear "
+            "whether the company does the work itself, count it, unless the site says a third party does that specific "
+            "work. Work the company does itself counts even if it is non-core work or the company is in a different "
+            "industry. The one exception is construction contractors: home builders, developers, general contractors "
+            "for commercial, industrial or multifamily buildings, structural or commercial concrete contractors, and "
+            "civil or heavy contractors count as Light Construction only when light construction is their main work, "
+            "not because they also do some renovation, concrete or site work. Rebuilding homes, or building ADUs or "
+            "additions as part of a home-building business, is still home building. Any other business that does light "
+            "construction work itself counts, even as non-core work. If several fit, choose the industry whose "
+            "equipment most of the company's work needs, counting the services it offers, not how often the site "
+            "repeats them. Choose None only when there is no evidence of any listed equipment or work, or the site "
+            "clearly says third parties do all of it; when it is only unclear who does the work, or others do just "
+            "part of it, choose the industry. "
             + WHO_DOES_THE_WORK
         ),
         "criteria": INDUSTRIES,
@@ -292,3 +333,6 @@ QUESTIONS = {
     **{f"main_{segment}": {"type": "noul", "instructions": main_statement(segment, d)}
        for segment, d in DEFINITIONS.items()},
 }
+
+
+QUESTIONS_VERSION = hashlib.md5(json.dumps(QUESTIONS, sort_keys=True).encode()).hexdigest()[:8]  # changes with wording

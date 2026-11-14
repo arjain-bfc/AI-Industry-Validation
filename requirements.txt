@@ -6,5 +6,7 @@ pandas>=3.1
 openpyxl>=3.1          # reads the input file, writes the report
 requests>=2.34         # model calls
 python-dotenv>=1.2     # loads API keys from .env
+python-docx>=1.1       # builds the rules Word document from RULES.md (build_rules_doc.py)
+pyodbc>=5.2            # reads the accounts from the data warehouse (needs ODBC Driver 18 for SQL Server)
 playwright>=1.64       # browser used by Crawl4AI
 ipykernel>=7.4         # to run the notebooks
