@@ -32,9 +32,13 @@ input Excel  ──Phase 1──>  crawl store  ──Phase 2──>  answers + 
    applies our rules to the answer, and writes the report. The same company entered more than once (same website,
    same name) gets one call, and every record of it gets that answer.
 
-Both are safe to stop and re-run: finished accounts are on disk and skipped. Phase 1 retries by itself: sites that
-refused us or didn't answer are tried again after a wait (`RETRY_WAIT_MIN`, 1 min), up to 3 tries in a run, and
-again on every later run: they are never given up on. Only dead and parked sites are dropped for good.
+Both are safe to stop and re-run: finished accounts are on disk and skipped. Phase 1 retries by itself: a site that
+refused us or didn't answer is tried again after a wait (`RETRY_WAIT_MIN`, 1 min), up to 3 tries in a run, with
+half the usual time limits (`crawl.QUICK`). A site that already failed on an earlier run gets one quick try per run
+and is then left for the next run, so failing sites can't drag a run out; they are never given up on. Only dead and
+parked sites are dropped for good. `run_sets.py` crawls and classifies new sites first and does those retries last,
+and a crawl that stops early still has what it got classified. After 10 unreachable sites in a row the crawl checks
+our own internet connection and stops only if it is down.
 
 Both notebooks start with one line, `SET = "zoominfo_pilot"` (or another set): `datasets.py` lists the sets, and every
 file of a set (crawl store, answers, evidence log, report) is named after its input file. A new set is one line there.

@@ -80,13 +80,34 @@ TRY_AGAIN = ("unreachable", "blocked")
 MAX_ATTEMPTS = 3          # tries within one run
 
 
+# Retries are quick. A site that already failed (on an earlier run, or earlier in this run) gets half the time: such
+# sites mostly fail again, and full timeouts on them were most of a run's crawl time. If one answers, it is saved as
+# usual; a quick crawl that finds too little is simply tried again on a later run.
+QUICK = {**CRAWL, "site_timeout": CRAWL["site_timeout"] // 2,
+         "browser_page_timeout_s": CRAWL["browser_page_timeout_s"] // 2,
+         "challenge_wait_s": CRAWL["challenge_wait_s"] // 2}
+
+
 RETRY_WAIT_MIN = 1        # minutes between those tries
 
 
 DEAD_FOR_GOOD = ("dns_not_found", "host_error")
 
 
-STOP_AFTER_FAILURES = 10  # this many unreachable sites in a row stops the run (usually our own network is down)
+STOP_AFTER_FAILURES = 10  # this many unreachable sites in a row: check our own connection, stop only if it's down
+CONNECTION_CHECK = ("https://www.google.com", "https://www.microsoft.com")  # either answering means we are online
+
+
+def online():
+    """Is our own internet connection up? True if any of CONNECTION_CHECK answers within 10 seconds."""
+    import requests
+    for url in CONNECTION_CHECK:
+        try:
+            requests.head(url, timeout=10)
+            return True
+        except requests.RequestException:
+            continue
+    return False
 
 
 # Input Excel column -> company detail the model sees. The industry_types column (ZoomInfo or CRM label) is kept
@@ -191,6 +212,7 @@ class CrawlRun:
                         if r["status"] == "ok" and site_key(r["url"]) not in wrong_sites and not may_come_back(r)}
         self.next_pass = {"browser": [], "browser_hard": []}
         self.saved, self.total, self.unreachable_in_a_row = 0, 0, 0
+        self.one_try = False  # set for the round of sites that failed on an earlier run
 
     def needs_crawl(self, account_id, url):
         """Whether to crawl this account now: it has never been crawled, it is in RECRAWL_IDS, it has tries left
@@ -201,6 +223,12 @@ class CrawlRun:
         if rec is None or account_id in self.recrawl or not rec["final"]:
             return True
         return site_key(url) != site_key(rec["url"]) or may_come_back(rec)
+
+    def is_retry(self, account_id, url):
+        """A site that failed on an earlier run and is due for another try (same web address, may_come_back)."""
+        rec = self.store.get(account_id)
+        return (rec is not None and account_id not in self.recrawl and rec["final"]
+                and site_key(url) == site_key(rec["url"]) and may_come_back(rec))
 
     def save(self, record):
         """Write one account to the store and print a line about it. One exception: when an account was crawled
@@ -231,6 +259,8 @@ class CrawlRun:
                          or site_key(previous["url"]) != site_key(row["url"])
                          or previous.get("crawled_at", "") < self.started)  # last crawled on an earlier run
             attempts = 1 if first_try else previous["attempts"] + 1
+            if self.one_try:  # a site that failed on an earlier run gets one quick try per run, then waits
+                attempts = MAX_ATTEMPTS
             self.save(store_record(account["excel_row"], row, site["status"], site["pages"], site["error"],
                                    attempts, site["seconds"], site.get("reason")))
 
@@ -257,7 +287,7 @@ class CrawlRun:
                     else:
                         self.save_site(site)
 
-    def run_pass(self, mode, name, workers, sites):
+    def run_pass(self, mode, name, workers, sites, settings=CRAWL):
         """Split the sites between worker processes, then save their results as they come in."""
         if not sites:
             return
@@ -268,7 +298,7 @@ class CrawlRun:
         try:
             for i in range(n):
                 job, results, log = JOBS / f"job_{i}.json", JOBS / f"part_{i}.jsonl", JOBS / f"{mode}_worker_{i}.log"
-                job.write_text(json.dumps({"mode": mode, "settings": CRAWL, "sites": sites[i::n]}), encoding="utf-8")
+                job.write_text(json.dumps({"mode": mode, "settings": settings, "sites": sites[i::n]}), encoding="utf-8")
                 with open(log, "w", encoding="utf-8") as log_file:
                     processes.append((log, subprocess.Popen(
                         [sys.executable, str(FOLDER / "crawl_worker.py"), str(job), str(results)],
@@ -276,8 +306,12 @@ class CrawlRun:
             while any(p.poll() is None for _, p in processes):
                 self.collect(read_up_to)
                 if self.unreachable_in_a_row >= STOP_AFTER_FAILURES:
-                    raise RuntimeError(f"{STOP_AFTER_FAILURES} unreachable sites in a row: check the network, "
-                                       "then re-run")
+                    # Usually our own network is down. But near the end of a run, and on retries, the sites left
+                    # are the ones that didn't answer before, so a streak is expected: stop only if we are offline.
+                    if not online():
+                        raise RuntimeError(f"{STOP_AFTER_FAILURES} unreachable sites in a row and no internet "
+                                           "connection: check the network, then re-run")
+                    self.unreachable_in_a_row = 0
                 time.sleep(2)
         finally:
             stopped_early = any(p.poll() is None for _, p in processes)
@@ -303,10 +337,14 @@ def clear_jobs():
 
 
 def run(input_xlsx, store_path, limit=None, recrawl_ids=(), retry_wait_min=RETRY_WAIT_MIN,
-        recheck_website_issues=False):
+        recheck_website_issues=False, retries="include"):
     """Crawl every account in input_xlsx that needs it (CrawlRun.needs_crawl), then try again the sites that refused
-    us or didn't answer: wait retry_wait_min minutes, crawl only those, and repeat until each has had MAX_ATTEMPTS
-    tries (the next run tries them again). retry_wait_min=None: no waiting, leave them for the next run.
+    us or didn't answer: wait retry_wait_min minutes, crawl only those (quickly), and repeat until each has had
+    MAX_ATTEMPTS tries (the next run tries them again). retry_wait_min=None: no waiting, leave them for the next run.
+    retries: what to do with sites that failed on an EARLIER run and are due another try (CrawlRun.is_retry):
+      "include"  new sites first, then one quick try at those (the default)
+      "skip"     new sites only (run_sets.py classifies them before going back to the retries)
+      "only"     just the one quick try at those
     limit: at most this many accounts. recrawl_ids: account_ids to crawl again even though they are stored.
     recheck_website_issues: also crawl again every account whose website failed Phase 2's website check (a "website
     issue"). Off by default: they are not tried again on their own (at 100,000 accounts that would be 2,000-3,000
@@ -316,26 +354,34 @@ def run(input_xlsx, store_path, limit=None, recrawl_ids=(), retry_wait_min=RETRY
     recrawl = {i.lower() for i in recrawl_ids}
     if recheck_website_issues:
         recrawl |= {i.lower() for i, r in load_store(store_path).items() if r["status"] == "wrong_site"}
-    unfinished = crawl_round(input_xlsx, store_path, limit, recrawl, started=started)
-    while unfinished and retry_wait_min is not None:
-        print(f"\n{len(unfinished)} sites refused us or didn't answer: trying them again in {retry_wait_min} min "
-              "(stop now to leave them for the next run)")
-        time.sleep(retry_wait_min * 60)
-        unfinished = crawl_round(input_xlsx, store_path, None, set(), only=unfinished, started=started)
+    if retries in ("include", "skip"):
+        unfinished = crawl_round(input_xlsx, store_path, limit, recrawl, started=started, retries="skip")
+        while unfinished and retry_wait_min is not None:
+            print(f"\n{len(unfinished)} sites refused us or didn't answer: trying them again in {retry_wait_min} min "
+                  "(stop now to leave them for the next run)")
+            time.sleep(retry_wait_min * 60)
+            unfinished = crawl_round(input_xlsx, store_path, None, set(), only=unfinished, started=started,
+                                     quick=True)
+    if retries in ("include", "only"):
+        print("\nSites that failed on an earlier run: one quick try")
+        crawl_round(input_xlsx, store_path, None, set(), started=started, retries="only", quick=True)
 
 
-def crawl_round(input_xlsx, store_path, limit, recrawl, only=None, started=None):
-    """One go at the accounts that need crawling (or only the account_ids in `only`). Returns the account_ids crawled
-    this round that still have tries left."""
+def crawl_round(input_xlsx, store_path, limit, recrawl, only=None, started=None, retries="include", quick=False):
+    """One go at the accounts that need crawling (or only the account_ids in `only`; retries as in run()). quick: the
+    shorter QUICK time limits. Returns the account_ids crawled this round that still have tries left."""
     JOBS.mkdir(exist_ok=True)
     crawl_run = CrawlRun(store_path, recrawl, started)
+    crawl_run.one_try = retries == "only"
     if any(JOBS.glob("part_*.jsonl")):  # the last run was cut off: keep what its workers had finished
         crawl_run.collect({})
         clear_jobs()
 
     accounts = load_accounts(input_xlsx)
     todo = [(excel_row, row) for excel_row, row in accounts.iterrows()
-            if crawl_run.needs_crawl(row["account_id"], row["url"]) and (only is None or row["account_id"] in only)]
+            if crawl_run.needs_crawl(row["account_id"], row["url"]) and (only is None or row["account_id"] in only)
+            and (retries == "include"
+                 or crawl_run.is_retry(row["account_id"], row["url"]) == (retries == "only"))]
     print(f"{len(accounts)} accounts | {len(accounts) - len(todo)} already stored | {len(todo)} to crawl"
           + (f" | {min(limit, len(todo))} this run" if limit else ""))
     todo = todo[:limit] if limit else todo
@@ -364,7 +410,7 @@ def crawl_round(input_xlsx, store_path, limit, recrawl, only=None, started=None)
         for mode, name, workers in PASSES:
             if mode != "http":  # passes 2 and 3 get the sites the pass before handed on
                 sites, crawl_run.next_pass[mode] = crawl_run.next_pass[mode], []
-            crawl_run.run_pass(mode, name, workers, sites)
+            crawl_run.run_pass(mode, name, workers, sites, QUICK if quick else CRAWL)
     finally:
         print(f"\n{crawl_run.saved} of {len(todo)} saved in {(time.perf_counter() - start) / 60:.1f} min. "
               "Re-run to continue if it stopped.")

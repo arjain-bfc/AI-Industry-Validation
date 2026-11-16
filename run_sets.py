@@ -40,11 +40,13 @@ class Tee:
             s.flush()
 
 
-def crawl_set(name):
+def crawl_set(name, retries):
     f = datasets.files(name)
-    crawl.run(f.input, f.store, retry_wait_min=RETRY_WAIT_MIN)
-    summary = crawl.summary(f.store, f.summary)
-    print(summary["status"].value_counts().to_string())
+    try:
+        crawl.run(f.input, f.store, retry_wait_min=RETRY_WAIT_MIN, retries=retries)
+    finally:  # even when the crawl stopped early: what was crawled is saved and gets classified
+        summary = crawl.summary(f.store, f.summary)
+        print(summary["status"].value_counts().to_string())
 
 
 def classify_set(name):
@@ -65,11 +67,18 @@ def main(args):
                  (f"; unknown: {unknown}" if unknown else ""))
     LOGS.mkdir(parents=True, exist_ok=True)
     log = open(LOGS / f"run_{datetime.now():%Y-%m-%d_%H%M}.log", "w", encoding="utf-8")
+    sys.__stdout__.reconfigure(errors="replace")  # a company name the Windows console can't show mustn't stop the run
     sys.stdout = sys.stderr = Tee(sys.__stdout__, log)
     print(f"{datetime.now():%Y-%m-%d %H:%M} | sets {names} | questions version {questions.QUESTIONS_VERSION}")
+    # New sites are crawled and classified first, so their results don't wait on the slow retries of sites that
+    # failed on earlier runs; those get one quick try at the end, and whatever comes through is classified too.
+    # A step that fails is logged and the next step still runs: a crawl that stopped early has saved what it got.
+    steps = [("Phase 1 crawl (new sites)", lambda n: crawl_set(n, "skip"), crawl_it),
+             ("Phase 2 classify", classify_set, classify_it),
+             ("Phase 1 crawl (quick retry of earlier failures)", lambda n: crawl_set(n, "only"), crawl_it),
+             ("Phase 2 classify (retried sites)", classify_set, classify_it and crawl_it)]
     for name in names:
-        for step, run_step, wanted in (("Phase 1 crawl", crawl_set, crawl_it), ("Phase 2 classify", classify_set,
-                                                                                 classify_it)):
+        for step, run_step, wanted in steps:
             if not wanted:
                 continue
             start = time.perf_counter()
@@ -77,9 +86,8 @@ def main(args):
             try:
                 run_step(name)
                 print(f"=== {name}: {step} done in {(time.perf_counter() - start) / 60:.0f} min ===")
-            except Exception:  # noqa: BLE001 (logged; the next set still runs)
+            except Exception:  # noqa: BLE001 (logged; the next step still runs)
                 print(f"=== {name}: {step} FAILED ===\n{traceback.format_exc()}")
-                break
     print(f"\n{datetime.now():%Y-%m-%d %H:%M} | all done")
 
 
