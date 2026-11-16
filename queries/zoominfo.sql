@@ -1,4 +1,4 @@
--- ZoomInfo accounts: active end-users with a ZoomInfo id and a website, and no LCW opportunity term yet.
+-- ZoomInfo accounts: active end-users with a ZoomInfo id and a website, and no opportunity yet.
 -- The industry_types column is ZoomInfo's label. Read by data_warehouse.py (read only).
 SELECT
     a.crm_created_on,
