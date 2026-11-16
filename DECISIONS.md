@@ -2,6 +2,37 @@
 
 The code says what happens; this file says why. Newest first.
 
+## 2026-11-16
+- **Small and mid-sized businesses only, in every segment** (the reason Light Construction is "light": a potential
+  customer is one whose equipment volume Beacon can serve). The general rules now say a company whose equipment
+  needs are far beyond that (a national chain, a large fleet, a contractor working at large scale for governments,
+  utilities or big corporations) is Other; Light Construction adds that what makes construction heavy is scale.
+  Large telecom and fiber contractors moved to Other (0.91-0.99), a heavy highway and grading contractor too; small
+  excavators stayed Light Construction (0.97).
+- **Septic digging counts as Septic work** (decided): installing or repairing septic tanks and drain fields is
+  septic work; an excavation company that installs septic among much other digging is still judged by its work as a
+  whole. A septic company with a large backhoe side moved from Light Construction 0.75 to Septic 0.73.
+- **Light Construction / Septic overlap rewritten as one principle:** judge by what the work actually is, not the
+  machine or what the company calls it. Digging, hydro excavation included, is Light Construction; pumping, cleaning
+  or vacuuming out tanks, pipes, drains, basins or ponds, and hauling liquids or waste, is Septic. It replaces three
+  separately patched pieces. A hydrovac firm whose services are mostly catch basin and storm drain cleaning moved to
+  Septic (0.77-0.83); industrial vacuum firms stayed Septic (0.97-1.00). A clause saying cleaning is septic "even
+  when listed under hydro excavation" was tried and dropped: it pulled true hydro excavators to Septic. One hydro
+  excavator with many cleaning pages still comes out Septic while its main business says Light Construction; left as
+  a one-off. Yard drainage and irrigation done for landscaping are named as Landscape inside the overlap rule:
+  without it a drainage landscaper went from a toss-up to Light Construction 0.95.
+- **Overfit wording removed after a line-by-line review:** a rental company's parenthetical in Septic's includes,
+  the "even if they also offer hydro excavation" clause, a truck-shop example in Towing (Other already covers
+  equipment sellers and repairers), a duplicate "judge by most of the business" sentence, and a fuel-only vacuum
+  example in Septic's main business (too rare to be worth a rule). The builder rule is now stated once, in Light
+  Construction, instead of three times. Check set on the final wording (questions version 40522319): Clear 25/25,
+  Decided 34/36 (two builders just under the Other bar), Unclear 9/11.
+- **Crawl runs no longer spend long on sites that keep failing.** A site that already failed on an earlier run gets
+  one quick try per run (half the time limits) and waits for the next run; in-run retries are quick too; run_sets
+  crawls and classifies new sites first and the retries last; a crawl that stops early still gets classified; after
+  10 unreachable sites in a row the crawl checks our own connection instead of stopping. On one set the retry step
+  went from 18 minutes over three rounds to 8 minutes in one, recovering about the same.
+
 ## 2026-11-14
 - **Septic companies that pump and service systems as well as install them are Septic** (open question 1, decided).
   Added to who counts as Septic. Installation is no longer named as Light Construction digging work; the equipment

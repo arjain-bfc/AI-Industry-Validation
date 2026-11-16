@@ -93,27 +93,26 @@ DEFINITIONS = {
         "excludes": (
             "For construction contractors (home builders, developers, general contractors for commercial, industrial "
             "or multifamily buildings, structural or commercial concrete contractors, and civil or heavy contractors), "
-            "light construction must be their main work, judged by what they mainly present themselves as doing: its "
-            "headline, its main services and the projects it shows. A company that mainly presents renovation, "
-            "remodeling, roofing, site work or other work above counts, even if it also builds some new homes or does "
-            "some commercial work. When a company offers both building and remodeling, weigh its headline together "
-            "with the services it lists and the projects it shows: one whose work is mainly renovating or remodeling "
-            "is light construction, even if its headline says builder; one whose work is mainly building new homes or "
-            "buildings is a builder. A construction company or general contractor whose headline does not say what it "
-            "builds is judged by the services it lists: when most of them are work above, it counts, even if new homes "
-            "or commercial buildings are among them. Not light construction: companies that mainly build new homes or "
-            "housing developments (building new homes is heavy construction), developers, real estate companies, "
-            "general contractors for large commercial buildings, heavy civil construction (highways, bridges, large "
-            "utility projects, mining) and structural concrete for high-rises, garages or bridges. Interior-only work "
+            "light construction must be their main work, judged by what they mainly do: their headline together with "
+            "the services they list and the projects they show. One whose work is mainly renovation, remodeling, "
+            "roofing, site work or other work above counts, even if its headline says builder or it also builds some "
+            "new homes or does some commercial work; one whose work is mainly building new homes or buildings is a "
+            "builder. Rebuilding homes, or building ADUs or additions as part of a home-building business, is still "
+            "home building. Not light construction: companies that mainly build new homes or housing developments "
+            "(building new homes is heavy construction), developers, real estate companies, general contractors for "
+            "large commercial buildings, heavy civil construction (highways, bridges, large utility projects, mining) "
+            "and structural concrete for high-rises, garages or bridges. What makes construction heavy is scale: large "
+            "projects for governments, utilities or big corporations, or a large fleet of machines. Interior-only work "
             "(kitchens, bathrooms, cabinets, flooring, painting) needs none of this equipment, so it is not light "
-            "construction either. Where this overlaps with septic work, judge by the equipment: pumping, jetting and "
-            "cleaning septic systems, sewers and drains needs septic trucks and is septic; digging with excavators, "
-            "backhoes or a hydrovac truck (site utilities, new mains, exposing buried lines) is light construction. "
-            "A vacuum truck, hydrovac included, is judged by what it is "
-            "used for: digging with it (hydro excavation, potholing, exposing buried lines) is light construction; "
-            "pumping and hauling liquids, sludge or waste with it (cleaning tanks and pipes, spill clean-up) is "
-            "septic. Rebuilding homes, or building ADUs or additions as part of a home-building business, is still "
-            "home building. A business outside construction that does this kind of work itself, with its own "
+            "construction either. Where this overlaps with septic work, judge by what the work actually is, not by "
+            "the machine or by what the company calls it: digging, including hydro excavation with a hydrovac truck "
+            "(potholing, daylighting, exposing buried lines, site utilities, new mains), is light construction "
+            "(yard drainage and irrigation done for landscaping stay landscape work); "
+            "pumping, cleaning or vacuuming out tanks, pipes, drains, basins or ponds with a vacuum or jetter truck, "
+            "and hauling liquids, sludge or waste, is septic work. Digging for septic systems (installing or "
+            "repairing septic tanks and drain fields) counts as septic work; a construction or excavation company "
+            "that installs septic systems among much other digging (utility lines, site work) is still judged by its "
+            "work as a whole. A business outside construction that does this kind of work itself, with its own "
             "equipment, counts even as non-core work."),
         "main_true": (
             "a roofing, siding, pole building, steel building, renovation or remodeling contractor that builds "
@@ -137,11 +136,9 @@ DEFINITIONS = {
             "cleaning)"),
         "includes": (
             "septic, portable toilet and drain companies, including septic system companies that pump and service "
-            "systems as well as install them, portable toilet, restroom trailer and holding tank "
-            "rental companies (they own, deliver and service their units, even if they send septic tank pumping to "
-            "another company), septic pumping and aerobic system maintenance providers, industrial cleaning and vacuum "
-            "service companies that run their own vacuum trucks, even if they also offer hydro excavation, and "
-            "plumbers doing this work"),
+            "systems as well as install them, portable toilet, restroom trailer and holding tank rental companies, "
+            "septic pumping and aerobic system maintenance providers, industrial cleaning and vacuum service companies "
+            "that run their own vacuum trucks, and plumbers doing this work"),
         "main_true": (
             "a septic pumper, an aerobic system maintenance company, a portable toilet or restroom trailer rental "
             "company, a drain cleaning and sewer line company, or an industrial vacuum and hydro blasting company"),
@@ -172,7 +169,7 @@ DEFINITIONS = {
             "repossession company"),
         "main_false": (
             "an auto repair, tire or body shop that also tows, however prominently, unless towing is in its name or "
-            "main headline; a truck shop that repairs or sells tow truck equipment to towing companies"),
+            "main headline"),
     },
 }
 
@@ -308,7 +305,10 @@ QUESTIONS = {
     "industry": {
         "type": "choice",
         "instructions": (
-            "An equipment lender finances the equipment listed under each industry. The equipment and work listed for "
+            "An equipment lender finances the equipment listed under each industry. It serves small and mid-sized "
+            "businesses: a company whose equipment needs are far beyond that (a national chain, a large fleet, or a "
+            "contractor working at large scale for governments, utilities or big corporations) is not a customer in "
+            "any industry, so choose None for it. The equipment and work listed for "
             "each industry are examples: any one of them is evidence for that industry; a company does not need "
             "to match the whole list. Choose the industry whose "
             "equipment this company uses or would buy, based on evidence in its name and website: work it offers, "
@@ -317,15 +317,12 @@ QUESTIONS = {
             "party does for it is not evidence, because the company would not buy the equipment. When it is unclear "
             "whether the company does the work itself, count it, unless the site says a third party does that specific "
             "work. Work the company does itself counts even if it is non-core work or the company is in a different "
-            "industry. The one exception is construction contractors: home builders, developers, general contractors "
-            "for commercial, industrial or multifamily buildings, structural or commercial concrete contractors, and "
-            "civil or heavy contractors count as Light Construction only when light construction is their main work, "
-            "not because they also do some renovation, concrete or site work. Rebuilding homes, or building ADUs or "
-            "additions as part of a home-building business, is still home building. Any other business that does light "
-            "construction work itself counts, even as non-core work. If several industries fit, judge the company's "
+            "industry. The one exception is construction contractors, judged as described under Light Construction. "
+            "If several industries fit, judge the company's "
             "business as a whole, from its name, what it says it does and the services it offers, and choose the "
             "industry whose equipment most of that work needs. Neither the web address nor how often the site "
-            "repeats something decides it. Choose None only when there is no evidence of any listed equipment or work, or the site "
+            "repeats something decides it. Choose None only when there is no evidence of any listed equipment or "
+            "work, or the site "
             "clearly says third parties do all of it; when it is only unclear who does the work, or others do just "
             "part of it, choose the industry. "
             + WHO_DOES_THE_WORK

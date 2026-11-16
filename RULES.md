@@ -85,6 +85,7 @@ result             Towing, probability 29%, main business No
 ### The basic question
 
 - **Equipment, not industry.** Pick the segment whose equipment the company uses or would buy, judged from its name and website: the work it offers, the projects it shows, the equipment it mentions.
+- **Small and mid-sized businesses only.** A potential customer is one whose equipment volume Beacon can serve. A company whose equipment needs are far beyond that (a national chain, a large fleet, a contractor working at large scale for governments, utilities or big corporations) is Other, in any segment.
 - **The lists are examples, read as "any one of".** Each piece of equipment or work listed for a segment is evidence on its own; a company doesn't need to match the whole list.
 - **The equipment doesn't have to be named.** Mowing lawns needs mowers, even if the site never says "mower".
 - **Non-core work counts.** Work the company does itself counts even when it isn't its main business: an auto shop that tows with its own truck is Towing. The exception is construction contractors (see Light Construction).
@@ -143,11 +144,11 @@ result             Towing, probability 29%, main business No
 
 Special cases:
 
-- **Construction contractors count only when light construction is their main work:** home builders, developers, general contractors for commercial, industrial or multifamily buildings, structural or commercial concrete contractors, civil or heavy contractors. Doing some renovation, concrete or site work doesn't make them Light Construction. Rebuilding homes, or building ADUs or additions as part of a home-building business, is still home building.
-- **Builder or renovator? Weigh the headline with the services and projects.** Mainly renovating or remodeling: Light Construction, even if the headline says builder. Mainly building new homes or buildings: a builder (Other).
-- **A headline that doesn't say what it builds:** judge by the services listed. Mostly light construction work counts, even with some new homes or commercial buildings among them.
+- **Construction contractors count only when light construction is their main work:** home builders, developers, general contractors for commercial, industrial or multifamily buildings, structural or commercial concrete contractors, civil or heavy contractors. Judged by what they mainly do (headline, services and projects together): mainly renovating, remodeling, roofing or site work counts, even if the headline says builder; mainly building new homes or buildings is a builder (Other). Rebuilding homes, or building ADUs or additions as part of a home-building business, is still home building. This rule is stated once, here.
+- **What makes construction heavy is scale:** large projects for governments, utilities or big corporations, or a large fleet of machines. Light Construction is "light" because Beacon can't serve the equipment volume a heavy contractor needs.
 - **Interior-only work** (kitchens, baths, cabinets, flooring, painting) needs none of this equipment, so it isn't Light Construction.
-- **Where Light Construction and Septic overlap, judge by the equipment.** Pumping, jetting and cleaning needs septic trucks: Septic. Digging (site utilities, exposing lines) needs excavators: Light Construction. A vacuum truck, hydrovac included, is judged by its use: digging with it (hydro excavation, potholing) is Light Construction; pumping and hauling liquids, sludge or waste with it (cleaning tanks and pipes, spill clean-up) is Septic. A company doing several of these goes to the equipment most of its work needs. This rule is stated once on purpose: repeating it across the definitions made it override companies whose whole business is septic systems.
+- **Where Light Construction and Septic overlap, judge by what the work actually is, not by the machine or what the company calls it.** Digging, including hydro excavation with a hydrovac truck (potholing, daylighting, exposing buried lines, site utilities, new mains), is Light Construction; yard drainage and irrigation done for landscaping stay Landscape. Pumping, cleaning or vacuuming out tanks, pipes, drains, basins or ponds with a vacuum or jetter truck, and hauling liquids, sludge or waste, is Septic.
+- **Digging for septic systems counts as Septic work** (installing or repairing septic tanks and drain fields). A construction or excavation company that installs septic among much other digging (utility lines, site work) is still judged by its work as a whole.
 
 ### Septic
 
@@ -155,7 +156,7 @@ Special cases:
 |---|---|
 | **Equipment** | septic pumper, vacuum or jetter trucks, vacuum tank trailers, portable restroom trailers |
 | **Work** | septic tank and cesspool pumping; grease trap pumping; portable toilet service; storm drain, catch basin and dry well cleaning; sewer and drain jetting; industrial vacuum work (liquid waste hauling, hydro blasting, tank cleaning) |
-| **Who counts** | septic, portable toilet and drain companies, including septic system companies that pump and service systems as well as install them; portable toilet, restroom trailer and holding tank rental companies, even if they send tank pumping elsewhere; aerobic system maintenance; industrial vacuum companies with their own trucks, even if they also offer hydro excavation; plumbers doing this work |
+| **Who counts** | septic, portable toilet and drain companies, including septic system companies that pump and service systems as well as install them; portable toilet, restroom trailer and holding tank rental companies; aerobic system maintenance; industrial vacuum companies with their own trucks; plumbers doing this work |
 | **Main business: yes** | a septic pumper, aerobic maintenance company, portable toilet or restroom trailer company, drain and sewer cleaning company, industrial vacuum company |
 | **Main business: no** | a plumber that also jets drains; a septic inspector that doesn't pump |
 
@@ -168,7 +169,7 @@ Special cases:
 | **Not towing** | roadside help with no tow truck (jump starts, tire changes, lockouts, fuel delivery) |
 | **Who counts** | towing, auto transport, car hauling and repossession companies; repair shops that tow, and body shops, dealers and transporters that tow or haul vehicles themselves (any vehicle) |
 | **Main business: yes** | a tow company, wrecker service, roadside recovery company, vehicle transporter or car hauler, repossession company |
-| **Main business: no** | an auto repair, tire or body shop that also tows, unless towing is in its name or main headline; a truck shop that repairs or sells tow equipment |
+| **Main business: no** | an auto repair, tire or body shop that also tows, unless towing is in its name or main headline |
 
 Special cases:
 
