@@ -2,6 +2,16 @@
 
 The code says what happens; this file says why. Newest first.
 
+## 2026-11-16 (later)
+- **Scale is judged by size, not by who the customer is.** The first wording ("a contractor working at large scale
+  for governments, utilities or big corporations") sent local and regional utility contractors to Other: a
+  three-county gas-line crew read the same as a 34,000-employee national firm. Now: "a contractor operating across
+  many states or on major infrastructure projects; a local or regional contractor is not large just because its
+  customers are utilities, governments or big companies", and heavy construction is "major projects or a large fleet,
+  not who the customer is". Tested on 15 accounts: all 5 local and regional utility contractors back to Light
+  Construction; clearly national firms stay Other (0.86-0.99); one or two less obviously large firms now sit just
+  under the Other bar and stay Light Construction, an accepted cost (losing a real customer costs more).
+
 ## 2026-11-16
 - **Small and mid-sized businesses only, in every segment** (the reason Light Construction is "light": a potential
   customer is one whose equipment volume Beacon can serve). The general rules now say a company whose equipment
