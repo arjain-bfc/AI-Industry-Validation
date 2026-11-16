@@ -148,25 +148,63 @@ def not_classified_counts(stopped, by=None):
     return stopped.groupby(["Stopped at", "Problem"]).size().to_frame("accounts")
 
 
+def at_a_glance(result, label, main, probability, all_accounts, extra=()):
+    """The headline numbers for one model: counts, and each as a share of the CLASSIFIED accounts (accounts stopped
+    at the crawl or the website check never got an answer, so they aren't in the base). The coverage line is the one
+    share of all accounts. result/label/main/probability: one value per classified account (label may be None).
+    extra: more (name, count) lines, e.g. how many are on the Review sheet."""
+    n = len(result)
+    is_other = result == "Other"
+    coverage = [("All accounts in the input file", all_accounts, None),
+                ("Classified: the base for the shares below (this share: of all accounts)", n,
+                 n / all_accounts if all_accounts else None)]
+    rows = [("Other", is_other.sum()),
+            ("A segment, main business Yes", (~is_other & (main == "Yes")).sum()),
+            ("A segment, non-core (main business No)", (~is_other & (main == "No")).sum()),
+            ("Low probability (under 75%, a close call)", (probability < decide.MEDIUM_BAND).sum())]
+    if label is not None:
+        label = label.fillna("").astype(str)
+        has_label, differs = label != "", label.str.lower() != result.str.lower()
+        segment_label = has_label & (label != "Other")
+        rows += [("Same as the label", (has_label & ~differs).sum()),
+                 ("Differs from the label", (has_label & differs).sum()),
+                 ("   a segment label we call Other", (segment_label & is_other).sum()),
+                 ("   a segment label we call a different segment", (segment_label & ~is_other & differs).sum()),
+                 ("   an Other label we call a segment", ((label == "Other") & ~is_other).sum()),
+                 ("No label to compare with", (~has_label).sum())]
+    rows += list(extra)
+    lines = coverage + [(name, count, count / n if n else None) for name, count in rows]
+    return pd.DataFrame([(name, int(count), share) for name, count, share in lines],
+                        columns=["", "accounts", "share %"]).set_index("")
+
+
+def label_flows(label, result):
+    """For each label: where its accounts went, as a share of that label's classified accounts (rows add up to
+    100%): how many stayed, went to Other, or went to another segment."""
+    flows = pd.crosstab(label.replace("", "(blank)"), result, normalize="index")
+    return flows.rename(columns=lambda c: f"{c} %")
+
+
 def summary_tables(table, everyone, label_name):
     """{title: table} for the Summary sheet. everyone: the Accounts sheet (every account in the input file)."""
     out = {}
     stopped = everyone[everyone["Result"] == "not classified"]
     if not table.empty:
+        col = f"{label_name} industry"
+        to_check = split_for_checking(table)
+        out["At a glance (shares are of the classified accounts)"] = at_a_glance(
+            table[AI_INDUSTRY], table[col] if col in table else None, table["Main business"], table["Probability"],
+            len(everyone), extra=[(f"On the {name} sheet", len(part)) for name, part in to_check.items()])
         out["Accounts per industry, by main business"] = pd.crosstab(
             table[AI_INDUSTRY], table["Main business"].replace("", "(Other)"), margins=True, margins_name="Total")
         out["How sure"] = (table["Probability"].map(decide.how_sure).value_counts()
                              .reindex(["High", "Medium", "Low"]).fillna(0)
                              .astype(int).to_frame("accounts"))
-        to_check = split_for_checking(table)
-        out["Where the accounts are"] = pd.DataFrame(
-            {"accounts": [len(table), *map(len, to_check.values()), len(stopped)]},
-            index=["All classified (Accounts sheet)", *to_check, "Not classified"])
-        col = f"{label_name} industry"
         if col in table:
             out[f"{label_name} industry (rows) vs AI predicted (columns)"] = pd.crosstab(
                 table[col].replace("", "(blank)"), table[AI_INDUSTRY], margins=True, margins_name="Total")
-            out[f"Same as {label_name}"] = table["Match"].replace("", "(no label)").value_counts().to_frame("accounts")
+            out[f"Where each {label_name} label's accounts went (each row adds up to 100%)"] = label_flows(
+                table[col], table[AI_INDUSTRY])
     if not stopped.empty:
         out["Not classified: where it stopped and why (details on the Not classified sheet)"] = \
             not_classified_counts(stopped)
@@ -312,9 +350,12 @@ def write_tables(ws, tables, first_width=34):
         for j, col in enumerate(part.columns, 1):
             cell = ws.cell(r + 1, j, str(col))
             cell.font, cell.fill = Font(bold=True), PatternFill("solid", fgColor="DDEBF7")
+        percent = [str(c).endswith("%") for c in part.columns]  # share columns are shown as percentages
         for i, values in enumerate(part.itertuples(index=False), r + 2):
             for j, v in enumerate(values, 1):
-                ws.cell(i, j, v)
+                cell = ws.cell(i, j, None if pd.isna(v) else v)
+                if percent[j - 1]:
+                    cell.number_format = "0%"
         r += len(part) + 3
     ws.column_dimensions["A"].width = first_width
 

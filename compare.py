@@ -234,14 +234,25 @@ def guide(label_name, models, thresholds):
 
 def report(answers_csv, report_xlsx, label_name="", models=("decision1", "jev"), thresholds=None, store_path=None,
            input_xlsx=None):
-    """Excel comparison: Guide, Summary, Disagreements (the accounts to look at), All accounts, Not classified. Also
+    """Excel comparison: Guide, Summary, Disagreements (the accounts to look at), Label differences, All accounts, Not
+    classified. Also
     a CSV. thresholds: a model's own bars, e.g. {"jev": {"other_threshold": 0.70}}; others use decide.py's.
     store_path and input_xlsx (the crawl store and the input file) are needed for the Not classified sheet."""
     table = side_by_side(answers_csv, label_name, models, thresholds)
     names = [model_api.MODELS[m]["name"] for m in models]
     both = table[table["Models agree"] != ""]
-    summary = {"Both models": pd.DataFrame({"accounts": [len(both), (both["Models agree"] == "Yes").sum()]},
-                                           index=["Answered by both", "Same industry"])}
+    label = f"{label_name} industry" if label_name else None
+    all_accounts = len(load_accounts(input_xlsx)) if input_xlsx else len(table)
+    summary, glance = {}, []
+    for name in names:  # one pair of columns per model; shares are of the accounts that model classified
+        done = table[table[name].notna()]
+        part = phase2_report.at_a_glance(done[name], done[label] if label else None,
+                                         done[f"{name} main business"].fillna(""), done[f"{name} probability"],
+                                         all_accounts)
+        glance.append(part.rename(columns={"accounts": f"{name} accounts", "share %": f"{name} share %"}))
+    summary["At a glance, per model (shares are of the accounts that model classified)"] = pd.concat(glance, axis=1)
+    summary["Both models"] = pd.DataFrame({"accounts": [len(both), (both["Models agree"] == "Yes").sum()]},
+                                          index=["Answered by both", "Same industry"])
     if len(names) == 2:
         summary[f"{names[0]} (rows) vs {names[1]} (columns)"] = pd.crosstab(both[names[0]], both[names[1]],
                                                                          margins=True, margins_name="Total")
@@ -260,6 +271,10 @@ def report(answers_csv, report_xlsx, label_name="", models=("decision1", "jev"),
     summary[f"How sure ({bands})"] = pd.DataFrame(sure).fillna(0).astype(int)
     if label_name:
         summary[f"Each model vs {label_name}"] = pd.DataFrame(against_label).fillna(0).astype(int)
+        for name in names:
+            done = table[table[name].notna()]
+            summary[f"{name}: where each {label_name} label's accounts went (each row adds up to 100%)"] = \
+                phase2_report.label_flows(done[label], done[name])
     for m, name in zip(models, names):
         table_of_bars, net_note = other_bar_table(answers_csv, m, thresholds)
         summary[f"{name}: how many accounts are Other at each Other bar. {net_note}"] = table_of_bars
@@ -275,7 +290,11 @@ def report(answers_csv, report_xlsx, label_name="", models=("decision1", "jev"),
     phase2_report.write_guide(ws, guide(label_name, models, thresholds))
     phase2_report.write_tables(wb.create_sheet("Summary"), summary, first_width=40)
     wrap = tuple(f"{n} rationale" for n in names)
-    for name, rows in (("Disagreements", both[both["Models agree"] == "No"]), ("All accounts", table)):
+    sheets = [("Disagreements", both[both["Models agree"] == "No"])]
+    if label_name:  # every account where at least one model differs from the label
+        differs = (table[[f"{n} vs {label_name}" for n in names]] == "Mismatch").any(axis=1)
+        sheets.append(("Label differences", table[differs]))
+    for name, rows in (*sheets, ("All accounts", table)):
         rows, links = phase2_report.with_links(rows)  # Account (website-link) and CRM link, frozen
         phase2_report.write_sheet(wb.create_sheet(name), rows, wrap, links=links, frozen=2)
     if not stopped.empty:
